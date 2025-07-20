@@ -1,0 +1,855 @@
+<%- include('partials/csrf') %>
+<% 
+  // Set active tab for navigation highlighting 
+  var activeTab = 'home';
+%>
+
+<!-- Skip to main dashboard content -->
+<a href="#dashboard-content" class="skip-link">Skip to dashboard content</a>
+
+<div class="container-fluid" id="dashboard-content">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h2 mb-2">
+            <i class="fas fa-tachometer-alt me-2" aria-hidden="true"></i>
+            Dashboard
+          </h1>
+          <p class="lead text-muted mb-0">Monitor your FCM devices and notifications</p>
+        </div>
+        <div class="d-none d-lg-block">
+          <small class="text-muted">
+            <i class="fas fa-clock me-1" aria-hidden="true"></i>
+            Last updated: <span id="last-updated"><%= new Date().toLocaleString() %></span>
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Accounts Warning -->
+  <% if (!hasFirebaseAccounts) { %>
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-warning" role="alert">
+        <div class="d-flex align-items-center">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle fa-2x" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h5 class="alert-heading mb-2">Firebase Account Required</h5>
+            <p class="mb-3">You need to set up at least one Firebase account to send notifications and manage devices.</p>
+            <a href="/accounts/add" class="btn btn-warning">
+              <i class="fas fa-plus me-1" aria-hidden="true"></i>
+              Set Up Firebase Account
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Stats Cards Section -->
+  <div class="row mb-4" role="region" aria-labelledby="stats-heading">
+    <div class="col-12 mb-3">
+      <h2 id="stats-heading" class="h5 text-muted text-uppercase">
+        <i class="fas fa-chart-bar me-2" aria-hidden="true"></i>
+        Overview Statistics
+      </h2>
+    </div>
+    
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card stats-card devices h-100" role="article" aria-labelledby="total-devices-title">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 id="total-devices-title" class="text-muted mb-2 text-uppercase">Total Devices</h6>
+              <h2 class="mb-0 fw-bold" aria-label="<%= totalDevices || 0 %> total devices">
+                <%= totalDevices || 0 %>
+              </h2>
+              <small class="text-muted">
+                <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                All registered devices
+              </small>
+            </div>
+            <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-flex align-items-center justify-content-center">
+              <i class="fas fa-mobile-alt fa-2x text-primary" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card stats-card active h-100" role="article" aria-labelledby="active-devices-title">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 id="active-devices-title" class="text-muted mb-2 text-uppercase">Active Devices</h6>
+              <h2 class="mb-0 fw-bold" aria-label="<%= activeDevices || 0 %> active devices">
+                <%= activeDevices || 0 %>
+              </h2>
+              <small class="text-muted">
+                <i class="fas fa-check-circle me-1" aria-hidden="true"></i>
+                Currently online
+              </small>
+            </div>
+            <div class="rounded-circle bg-success bg-opacity-10 p-3 d-flex align-items-center justify-content-center">
+              <i class="fas fa-check-circle fa-2x text-success" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card stats-card inactive h-100" role="article" aria-labelledby="inactive-devices-title">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 id="inactive-devices-title" class="text-muted mb-2 text-uppercase">Inactive Devices</h6>
+              <h2 class="mb-0 fw-bold" aria-label="<%= inactiveDevices || 0 %> inactive devices">
+                <%= inactiveDevices || 0 %>
+              </h2>
+              <small class="text-muted">
+                <i class="fas fa-times-circle me-1" aria-hidden="true"></i>
+                Currently offline
+              </small>
+            </div>
+            <div class="rounded-circle bg-danger bg-opacity-10 p-3 d-flex align-items-center justify-content-center">
+              <i class="fas fa-times-circle fa-2x text-danger" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card stats-card accounts h-100" role="article" aria-labelledby="total-accounts-title">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 id="total-accounts-title" class="text-muted mb-2 text-uppercase">Firebase Accounts</h6>
+              <h2 class="mb-0 fw-bold" aria-label="<%= totalAccounts || 0 %> Firebase accounts">
+                <%= totalAccounts || 0 %>
+              </h2>
+              <small class="text-muted">
+                <i class="fas fa-fire me-1" aria-hidden="true"></i>
+                Connected projects
+              </small>
+            </div>
+            <div class="rounded-circle bg-warning bg-opacity-10 p-3 d-flex align-items-center justify-content-center">
+              <i class="fas fa-fire fa-2x text-warning" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card stats-card topics h-100" role="article" aria-labelledby="total-topics-title">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 id="total-topics-title" class="text-muted mb-2 text-uppercase">Topics</h6>
+              <h2 class="mb-0 fw-bold" aria-label="<%= totalTopics || 0 %> topics">
+                <%= totalTopics || 0 %>
+              </h2>
+              <small class="text-muted">
+                <i class="fas fa-tags me-1" aria-hidden="true"></i>
+                Notification channels
+              </small>
+            </div>
+            <div class="rounded-circle bg-info bg-opacity-10 p-3 d-flex align-items-center justify-content-center">
+              <i class="fas fa-tags fa-2x text-info" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card stats-card notifications h-100" role="article" aria-labelledby="recent-notifications-title">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 id="recent-notifications-title" class="text-muted mb-2 text-uppercase">Recent Notifications</h6>
+              <h2 class="mb-0 fw-bold" aria-label="<%= recentNotifications || 0 %> notifications this week">
+                <%= recentNotifications || 0 %>
+              </h2>
+              <small class="text-muted">
+                <i class="fas fa-paper-plane me-1" aria-hidden="true"></i>
+                Sent this week
+              </small>
+            </div>
+            <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-flex align-items-center justify-content-center">
+              <i class="fas fa-paper-plane fa-2x text-primary" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts and Data Section -->
+  <div class="row mb-4">
+    <!-- Platform Distribution Chart -->
+    <div class="col-xl-6 col-lg-12 mb-4">
+      <div class="card h-100" role="region" aria-labelledby="platform-chart-title">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 id="platform-chart-title" class="mb-0">
+            <i class="fas fa-chart-pie me-2" aria-hidden="true"></i>
+            Platform Distribution
+          </h5>
+          <button class="btn btn-sm btn-outline-primary" type="button" 
+                  data-bs-toggle="tooltip" data-bs-placement="top" 
+                  title="Refresh chart data">
+            <i class="fas fa-sync-alt" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline ms-1">Refresh</span>
+          </button>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <% if (platformDistribution && platformDistribution.length > 0) { %>
+            <div class="chart-container w-100" style="height: 300px; position: relative;">
+              <canvas id="platformChart" 
+                      role="img" 
+                      aria-label="Platform distribution chart showing device types"
+                      data-chart-type="doughnut"
+                      data-skip-global-init="true"
+                      data-chart-data='<%- JSON.stringify({
+                        labels: platformDistribution.map(p => p.platform || "Unknown"),
+                        datasets: [{
+                          data: platformDistribution.map(p => Number(p.count)),
+                          backgroundColor: ["#4361ee", "#06ffa5", "#fd7e14", "#e74c3c", "#9b59b6", "#1abc9c", "#f39c12", "#34495e"],
+                          borderWidth: 2,
+                          borderColor: "#21262d"
+                        }]
+                      }) %>'></canvas>
+            </div>
+          <% } else { %>
+            <div class="text-center py-5">
+              <i class="fas fa-chart-pie fa-3x text-muted mb-3" aria-hidden="true"></i>
+              <h6 class="text-muted">No device data available</h6>
+              <p class="text-muted small">Register devices to see platform distribution</p>
+              <a href="/devices" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-plus me-1" aria-hidden="true"></i>
+                Add Devices
+              </a>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Devices -->
+    <div class="col-xl-6 col-lg-12 mb-4">
+      <div class="card h-100" role="region" aria-labelledby="recent-devices-title">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 id="recent-devices-title" class="mb-0">
+            <i class="fas fa-clock me-2" aria-hidden="true"></i>
+            Recent Devices
+          </h5>
+          <a href="/devices" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-arrow-right me-1" aria-hidden="true"></i>
+            View All
+          </a>
+        </div>
+        <div class="card-body p-0">
+          <% if (recentDevices && recentDevices.length > 0) { %>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0" role="table" aria-label="Recent devices list">
+                <thead>
+                  <tr>
+                    <th scope="col">Device</th>
+                    <th scope="col">Platform</th>
+                    <th scope="col">Last Seen</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% recentDevices.forEach((device, index) => { %>
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                            <i class="fas fa-mobile-alt text-primary" aria-hidden="true"></i>
+                          </div>
+                          <div>
+                            <div class="fw-medium">
+                              <%= device.name || 'Unknown Device' %>
+                            </div>
+                            <small class="text-muted">ID: <%= device.id %></small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <% if (device.platform === 'android') { %>
+                          <span class="badge bg-success">
+                            <i class="fab fa-android me-1" aria-hidden="true"></i>
+                            Android
+                          </span>
+                        <% } else if (device.platform === 'ios') { %>
+                          <span class="badge bg-secondary">
+                            <i class="fab fa-apple me-1" aria-hidden="true"></i>
+                            iOS
+                          </span>
+                        <% } else if (device.platform === 'web') { %>
+                          <span class="badge bg-primary">
+                            <i class="fab fa-chrome me-1" aria-hidden="true"></i>
+                            Web
+                          </span>
+                        <% } else { %>
+                          <span class="badge bg-info">
+                            <i class="fas fa-question-circle me-1" aria-hidden="true"></i>
+                            <%= device.platform || 'Unknown' %>
+                          </span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <span data-bs-toggle="tooltip" 
+                              title="<%= new Date(device.lastSeen).toLocaleString() %>">
+                          <%= new Date(device.lastSeen).toLocaleDateString() %>
+                        </span>
+                      </td>
+                      <td>
+                        <% if (device.isActive) { %>
+                          <span class="badge bg-success" aria-label="Device is active">
+                            <i class="fas fa-circle me-1" aria-hidden="true"></i>
+                            Active
+                          </span>
+                        <% } else { %>
+                          <span class="badge bg-danger" aria-label="Device is inactive">
+                            <i class="fas fa-circle me-1" aria-hidden="true"></i>
+                            Inactive
+                          </span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="text-center py-5">
+              <i class="fas fa-mobile-alt fa-3x text-muted mb-3" aria-hidden="true"></i>
+              <h6 class="text-muted">No devices registered yet</h6>
+              <p class="text-muted small">Start by registering your first device</p>
+              <a href="/devices" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1" aria-hidden="true"></i>
+                Register Device
+              </a>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card" role="region" aria-labelledby="quick-actions-title">
+        <div class="card-header">
+          <h5 id="quick-actions-title" class="mb-0">
+            <i class="fas fa-bolt me-2" aria-hidden="true"></i>
+            Quick Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-lg-3 col-md-6">
+              <a href="/notifications" class="btn btn-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                <i class="fas fa-paper-plane fa-2x mb-2" aria-hidden="true"></i>
+                <span class="fw-medium">Send Notification</span>
+                <small class="text-white-50 mt-1">Send messages to devices</small>
+              </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <a href="/accounts" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                <i class="fas fa-fire fa-2x mb-2" aria-hidden="true"></i>
+                <span class="fw-medium">Firebase Accounts</span>
+                <small class="text-muted mt-1">Manage FCM accounts</small>
+              </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <a href="/devices" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                <i class="fas fa-mobile-alt fa-2x mb-2" aria-hidden="true"></i>
+                <span class="fw-medium">Manage Devices</span>
+                <small class="text-muted mt-1">View and control devices</small>
+              </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <a href="/topics" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                <i class="fas fa-tags fa-2x mb-2" aria-hidden="true"></i>
+                <span class="fw-medium">Topic Management</span>
+                <small class="text-muted mt-1">Organize notifications</small>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Status Section (if applicable) -->
+  <% if (typeof systemStatus !== 'undefined' && systemStatus) { %>
+  <div class="row">
+    <div class="col-12">
+      <div class="card" role="region" aria-labelledby="system-status-title">
+        <div class="card-header">
+          <h5 id="system-status-title" class="mb-0">
+            <i class="fas fa-server me-2" aria-hidden="true"></i>
+            System Status
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-circle text-success me-2" aria-hidden="true"></i>
+                <span>FCM Service</span>
+                <span class="badge bg-success ms-auto">Online</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-circle text-success me-2" aria-hidden="true"></i>
+                <span>Database</span>
+                <span class="badge bg-success ms-auto">Connected</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-circle text-warning me-2" aria-hidden="true"></i>
+                <span>Notifications Queue</span>
+                <span class="badge bg-warning ms-auto">Processing</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>
+
+<!-- Enhanced Chart Initialization Script -->
+<% if (platformDistribution && platformDistribution.length > 0) { %>
+<script>
+(function() {
+  'use strict';
+  
+  /**
+   * Initialize Platform Distribution Chart with Enhanced Features
+   */
+  function initPlatformChart() {
+    const canvas = document.getElementById('platformChart');
+    if (!canvas) {
+      return;
+    }
+    
+    if (!window.Chart) {
+      // Retry after a short delay to allow Chart.js to load
+      setTimeout(initPlatformChart, 100);
+      return;
+    }
+
+    // Prevent multiple initializations - check multiple ways
+    if (window.FCMDashboard && window.FCMDashboard.platformChart) {
+      return;
+    }
+
+    // Check if chart already exists on canvas
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) {
+      // Store reference for potential updates
+      window.FCMDashboard = window.FCMDashboard || {};
+      window.FCMDashboard.platformChart = existingChart;
+      return;
+    }
+
+    // Mark that we're initializing this chart
+    canvas.setAttribute('data-initializing', 'true');
+
+    try {
+      // Set Chart.js global defaults for theme consistency
+      const isDarkTheme = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+      const textColor = isDarkTheme ? '#f0f6fc' : '#495057';
+      const gridColor = isDarkTheme ? '#30363d' : '#dee2e6';
+      
+      // Configure Chart.js defaults
+      Chart.defaults.font.family = "'Inter', sans-serif";
+      Chart.defaults.font.size = 12;
+      Chart.defaults.color = textColor;
+      Chart.defaults.borderColor = gridColor;
+      Chart.defaults.backgroundColor = isDarkTheme ? 'rgba(33, 38, 45, 0.8)' : 'rgba(255, 255, 255, 0.8)';
+
+      // Safely parse platform distribution data from server
+      const platformDistribution = <%- JSON.stringify(platformDistribution) %>;
+      
+      // Extract and validate data
+      const platformLabels = platformDistribution.map(p => p.platform || 'Unknown');
+      const platformData = platformDistribution.map(p => Number(p.count) || 0);
+      const totalDevices = platformData.reduce((sum, count) => sum + count, 0);
+      
+      // Enhanced color palette for better accessibility
+      const platformColors = [
+        '#4361ee', // Primary blue
+        '#06ffa5', // Accent green
+        '#fd7e14', // Orange
+        '#e74c3c', // Red
+        '#9b59b6', // Purple
+        '#1abc9c', // Teal
+        '#f39c12', // Yellow
+        '#34495e'  // Dark blue-gray
+      ];
+
+      // Chart configuration with accessibility enhancements
+      const chartConfig = {
+        type: 'doughnut',
+        data: {
+          labels: platformLabels,
+          datasets: [{
+            data: platformData,
+            backgroundColor: platformColors.slice(0, platformLabels.length),
+            borderColor: '#21262d',
+            borderWidth: 2,
+            hoverBorderWidth: 3,
+            hoverBorderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1000,
+            easing: 'easeOutQuart'
+          },
+          plugins: {
+            legend: {
+              position: 'right',
+              align: 'center',
+              labels: {
+                boxWidth: 12,
+                padding: 15,
+                font: {
+                  size: 12,
+                  family: "'Inter', sans-serif",
+                  weight: '500'
+                },
+                color: document.documentElement.getAttribute('data-bs-theme') === 'light' ? '#495057' : '#f0f6fc',
+                usePointStyle: true,
+                pointStyle: 'circle',
+                generateLabels: function(chart) {
+                  const data = chart.data;
+                  const isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+                  const textColor = isDark ? '#f0f6fc' : '#495057';
+                  
+                  return data.labels.map((label, index) => {
+                    const count = data.datasets[0].data[index];
+                    const percentage = Math.round((count / totalDevices) * 100);
+                    return {
+                      text: `${label}: ${count} (${percentage}%)`,
+                      fillStyle: data.datasets[0].backgroundColor[index],
+                      strokeStyle: data.datasets[0].borderColor,
+                      lineWidth: data.datasets[0].borderWidth,
+                      hidden: false,
+                      index: index,
+                      fontColor: textColor
+                    };
+                  });
+                }
+              }
+            },
+            tooltip: {
+              backgroundColor: function() {
+                const isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+                return isDark ? 'rgba(33, 38, 45, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+              }(),
+              titleColor: function() {
+                const isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+                return isDark ? '#f0f6fc' : '#212529';
+              }(),
+              bodyColor: function() {
+                const isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+                return isDark ? '#f0f6fc' : '#212529';
+              }(),
+              borderColor: function() {
+                const isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+                return isDark ? '#30363d' : '#dee2e6';
+              }(),
+              borderWidth: 1,
+              cornerRadius: 8,
+              displayColors: true,
+              titleFont: {
+                size: 13,
+                family: "'Inter', sans-serif",
+                weight: '600'
+              },
+              bodyFont: {
+                size: 12,
+                family: "'Inter', sans-serif",
+                weight: '500'
+              },
+              callbacks: {
+                title: function(context) {
+                  return `Platform: ${context[0].label}`;
+                },
+                label: function(context) {
+                  const value = context.parsed;
+                  const percentage = Math.round((value / totalDevices) * 100);
+                  return [
+                    `Devices: ${value}`,
+                    `Percentage: ${percentage}%`
+                  ];
+                }
+              }
+            }
+          },
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          elements: {
+            arc: {
+              borderJoinStyle: 'round'
+            }
+          }
+        }
+      };
+
+      // Create chart instance
+      const platformChart = new Chart(canvas, chartConfig);
+
+      // Remove initializing flag
+      canvas.removeAttribute('data-initializing');
+
+      // Add accessibility attributes
+      canvas.setAttribute('aria-label', 
+        `Platform distribution showing ${totalDevices} devices across ${platformLabels.length} platforms`);
+      
+      // Create accessible data table as fallback
+      createAccessibleDataTable(platformLabels, platformData);
+      
+
+      
+      // Expose chart instance for potential updates
+      window.FCMDashboard = window.FCMDashboard || {};
+      window.FCMDashboard.platformChart = platformChart;
+      
+    } catch (error) {
+      console.error('Failed to initialize platform chart:', error);
+      // Clean up on error
+      canvas.removeAttribute('data-initializing');
+      showChartError(canvas);
+    }
+  }
+
+  /**
+   * Create accessible data table for screen readers
+   */
+  function createAccessibleDataTable(labels, data) {
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'sr-only';
+    tableContainer.innerHTML = `
+      <table>
+        <caption>Platform Distribution Data</caption>
+        <thead>
+          <tr>
+            <th>Platform</th>
+            <th>Device Count</th>
+            <th>Percentage</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${labels.map((label, index) => {
+            const count = data[index];
+            const total = data.reduce((sum, val) => sum + val, 0);
+            const percentage = Math.round((count / total) * 100);
+            return `
+              <tr>
+                <td>${label}</td>
+                <td>${count}</td>
+                <td>${percentage}%</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+    
+    document.getElementById('platformChart').parentNode.appendChild(tableContainer);
+  }
+
+  /**
+   * Show error message when chart fails to load
+   */
+  function showChartError(canvas) {
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'text-center py-4';
+    errorMessage.innerHTML = `
+      <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2" aria-hidden="true"></i>
+      <h6 class="text-muted">Chart could not be loaded</h6>
+      <p class="text-muted small">Please refresh the page or check your connection</p>
+    `;
+    
+    canvas.parentNode.replaceChild(errorMessage, canvas);
+  }
+
+  /**
+   * Auto-refresh functionality (optional)
+   */
+  function setupAutoRefresh() {
+    const refreshButton = document.querySelector('[data-bs-toggle="tooltip"][title*="Refresh"]');
+    if (refreshButton) {
+      refreshButton.addEventListener('click', function() {
+        // Add loading state
+        const originalHTML = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
+        this.disabled = true;
+        
+        // Simulate refresh (replace with actual AJAX call)
+        setTimeout(() => {
+          this.innerHTML = originalHTML;
+          this.disabled = false;
+          
+          // Announce to screen readers
+          if (window.FCMDashboard && window.FCMDashboard.FCM) {
+            window.FCMDashboard.FCM.accessibility.announce('Chart data refreshed');
+          }
+        }, 1000);
+      });
+    }
+  }
+
+  // Initialize when DOM is ready
+  function init() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPlatformChart);
+    } else {
+      initPlatformChart();
+    }
+    setupAutoRefresh();
+  }
+
+  init();
+})();
+</script>
+<% } else { %>
+<script>
+// Log when no platform data is available
+
+</script>
+<% } %>
+
+<!-- Dashboard-specific enhancements -->
+<script>
+(function() {
+  'use strict';
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    // Update last updated timestamp
+    function updateTimestamp() {
+      const timestampElement = document.getElementById('last-updated');
+      if (timestampElement) {
+        timestampElement.textContent = new Date().toLocaleString();
+      }
+    }
+    
+    // Update every minute
+    setInterval(updateTimestamp, 60000);
+    
+    // Initialize enhanced tooltips for dashboard
+    if (window.FCMDashboard && window.FCMDashboard.FCM) {
+      window.FCMDashboard.FCM.ui.initTooltips();
+    }
+    
+    // Add hover effects to quick action buttons
+    document.querySelectorAll('.btn[href]').forEach(button => {
+      button.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-2px)';
+      });
+      
+      button.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+      });
+    });
+    
+    // Animate stats cards on scroll (if IntersectionObserver is supported)
+    if ('IntersectionObserver' in window) {
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      };
+      
+      const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.style.animation = 'fadeInUp 0.6s ease-out forwards';
+          }
+        });
+      }, observerOptions);
+      
+      document.querySelectorAll('.stats-card').forEach(card => {
+        observer.observe(card);
+      });
+    }
+  });
+})();
+</script>
+
+<!-- CSS for animations -->
+<style>
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .stats-card {
+    animation: none !important;
+  }
+  
+  .btn[href] {
+    transition: none !important;
+  }
+}
+
+/* Enhanced card hover effects */
+.stats-card {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Quick action button enhancements */
+.btn[href] {
+  transition: all 0.2s ease;
+  text-decoration: none !important;
+}
+
+.btn[href]:hover {
+  text-decoration: none !important;
+}
+
+/* Focus improvements for accessibility */
+.btn[href]:focus {
+  outline: 3px solid rgba(67, 97, 238, 0.4);
+  outline-offset: 2px;
+}
+
+/* Table row hover enhancement */
+.table-hover tbody tr:hover {
+  background-color: rgba(177, 186, 196, 0.08);
+}
+</style>

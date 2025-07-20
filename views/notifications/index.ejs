@@ -1,0 +1,1095 @@
+<!-- Notifications Page Specific Dropdown Fixes -->
+<style>
+/* Notification content styling only */
+#notificationsTable .fw-medium {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
+
+
+
+<%- include('../partials/csrf') %>
+<% 
+  // Set active tab for navigation highlighting
+  var activeTab = 'notifications';
+%>
+
+<!-- Skip to main content -->
+<a href="#notifications-content" class="skip-link">Skip to notification form</a>
+
+<div class="container-fluid" id="notifications-content">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h2 mb-2">
+            <i class="fas fa-paper-plane me-2" aria-hidden="true"></i>
+            Send Notifications
+          </h1>
+          <p class="lead text-muted mb-0">Broadcast messages to your FCM-enabled devices</p>
+        </div>
+        <div class="d-none d-lg-block">
+          <div class="d-flex align-items-center text-muted">
+            <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
+            <small>
+              <strong><%= devices ? devices.length : 0 %></strong> registered devices • 
+              <strong><%= topics ? topics.length : 0 %></strong> topics available
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Account Warning -->
+  <% if (!hasFirebaseAccounts) { %>
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-warning" role="alert" aria-live="polite">
+        <div class="d-flex align-items-center">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle fa-2x" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h5 class="alert-heading mb-2">Firebase Account Required</h5>
+            <p class="mb-3">You need to add at least one Firebase account before you can send notifications.</p>
+            <a href="/accounts/add" class="btn btn-warning">
+              <i class="fas fa-plus me-1" aria-hidden="true"></i>
+              Add Firebase Account
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <div class="row">
+    <!-- Notification Form -->
+    <div class="col-lg-8 mb-4">
+      <div class="card" role="region" aria-labelledby="notification-form-title">
+        <div class="card-header">
+          <h5 id="notification-form-title" class="mb-0">
+            <i class="fas fa-bell me-2" aria-hidden="true"></i>
+            Compose Notification
+          </h5>
+        </div>
+        <div class="card-body">
+          <form action="/notifications" method="POST" id="notification-form" 
+                data-needs-validation novalidate role="form" aria-label="Send notification form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            
+            <!-- Firebase Account Selection -->
+            <fieldset class="mb-4">
+              <legend class="h6 mb-3">
+                <i class="fas fa-fire me-2" aria-hidden="true"></i>
+                Firebase Account
+              </legend>
+              <div class="mb-3">
+                <label for="accountId" class="form-label">
+                  Select Firebase Account
+                  <span class="text-danger" aria-label="required">*</span>
+                </label>
+                <select class="form-select" id="accountId" name="accountId" required 
+                        <%= !hasFirebaseAccounts ? 'disabled' : '' %>
+                        aria-describedby="account-help">
+                  <% if (!hasFirebaseAccounts || accounts.length === 0) { %>
+                    <option value="" disabled selected>No Firebase accounts available</option>
+                  <% } else { %>
+                    <option value="" disabled <%= !defaultAccount ? 'selected' : '' %>>
+                      Choose a Firebase account...
+                    </option>
+                    <% accounts.forEach(account => { %>
+                      <option value="<%= account.id %>" <%= account.isDefault ? 'selected' : '' %>>
+                        <%= account.name %> <%= account.isDefault ? '(Default)' : '' %>
+                      </option>
+                    <% }) %>
+                  <% } %>
+                </select>
+                <div id="account-help" class="form-text">
+                  <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                  Choose the Firebase account to use for sending this notification
+                </div>
+                <div class="invalid-feedback" role="alert"></div>
+              </div>
+            </fieldset>
+            
+            <!-- Notification Content -->
+            <fieldset class="mb-4">
+              <legend class="h6 mb-3">
+                <i class="fas fa-edit me-2" aria-hidden="true"></i>
+                Notification Content
+              </legend>
+              
+              <div class="mb-3">
+                <label for="title" class="form-label">
+                  Title
+                  <span class="text-danger" aria-label="required">*</span>
+                </label>
+                <input type="text" class="form-control" id="title" name="title" required
+                       maxlength="100" minlength="1"
+                       placeholder="Enter notification title..."
+                       aria-describedby="title-help">
+                <div id="title-help" class="form-text d-flex justify-content-between">
+                  <span>
+                    <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                    Keep it concise and descriptive (1-100 characters)
+                  </span>
+                  <span id="title-counter" class="text-muted">0/100</span>
+                </div>
+                <div class="invalid-feedback" role="alert"></div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="body" class="form-label">
+                  Message
+                  <span class="text-danger" aria-label="required">*</span>
+                </label>
+                <textarea class="form-control" id="body" name="body" rows="4" required
+                          maxlength="1000" minlength="1"
+                          placeholder="Enter your notification message..."
+                          aria-describedby="body-help"></textarea>
+                <div id="body-help" class="form-text d-flex justify-content-between">
+                  <span>
+                    <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                    The main content of your notification (1-1000 characters)
+                  </span>
+                  <span id="body-counter" class="text-muted">0/1000</span>
+                </div>
+                <div class="invalid-feedback" role="alert"></div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="imageUrl" class="form-label">
+                  Image URL (optional)
+                </label>
+                <input type="url" class="form-control" id="imageUrl" name="imageUrl"
+                       maxlength="500"
+                       placeholder="https://example.com/image.jpg"
+                       aria-describedby="image-help">
+                <div id="image-help" class="form-text">
+                  <i class="fas fa-image me-1" aria-hidden="true"></i>
+                  URL to an image that will be displayed in the notification
+                </div>
+                <div class="invalid-feedback" role="alert"></div>
+              </div>
+            </fieldset>
+            
+            <!-- Target Selection -->
+            <fieldset class="mb-4">
+              <legend class="h6 mb-3">
+                <i class="fas fa-bullseye me-2" aria-hidden="true"></i>
+                Select Target Audience
+              </legend>
+              
+              <div class="row mb-3" role="radiogroup" aria-labelledby="target-selection-legend">
+                <div class="col-lg-4 col-md-6 mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="targetType" 
+                           id="targetAll" value="all" checked
+                           aria-describedby="target-all-help">
+                    <label class="form-check-label fw-medium" for="targetAll">
+                      <i class="fas fa-broadcast-tower me-1" aria-hidden="true"></i>
+                      All Devices
+                    </label>
+                    <div id="target-all-help" class="form-text small">
+                      <%= devices ? devices.length : 0 %> registered devices
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6 mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="targetType" 
+                           id="targetDevice" value="device"
+                           aria-describedby="target-device-help">
+                    <label class="form-check-label fw-medium" for="targetDevice">
+                      <i class="fas fa-mobile-alt me-1" aria-hidden="true"></i>
+                      Specific Device
+                    </label>
+                    <div id="target-device-help" class="form-text small">
+                      Send to a single device
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6 mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="targetType" 
+                           id="targetTopic" value="topic"
+                           aria-describedby="target-topic-help">
+                    <label class="form-check-label fw-medium" for="targetTopic">
+                      <i class="fas fa-tags me-1" aria-hidden="true"></i>
+                      Topic Subscribers
+                    </label>
+                    <div id="target-topic-help" class="form-text small">
+                      Send to topic subscribers
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Device Selection (initially hidden) -->
+              <div class="mb-3 d-none" id="deviceSelection" role="region" aria-labelledby="device-selection-label">
+                <label id="device-selection-label" for="deviceToken" class="form-label">
+                  Select Device
+                  <span class="text-danger" aria-label="required when device target is selected">*</span>
+                </label>
+                <select class="form-select" id="deviceToken" name="deviceToken"
+                        aria-describedby="device-selection-help">
+                  <option value="" selected disabled>Choose a device...</option>
+                  <% if (devices && devices.length > 0) { %>
+                    <% devices.forEach(device => { %>
+                      <option value="<%= device.token %>">
+                        <%= device.name || 'Unknown Device' %> 
+                        (<%= device.platform || 'Unknown' %>) - 
+                        <%= device.isActive ? 'Active' : 'Inactive' %>
+                      </option>
+                    <% }) %>
+                  <% } %>
+                </select>
+                <div id="device-selection-help" class="form-text">
+                  <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                  Choose which device should receive the notification
+                </div>
+                <div class="invalid-feedback" role="alert"></div>
+              </div>
+              
+              <!-- Topic Selection (initially hidden) -->
+              <div class="mb-3 d-none" id="topicSelection" role="region" aria-labelledby="topic-selection-label">
+                <label id="topic-selection-label" for="topic" class="form-label">
+                  Select Topic
+                  <span class="text-danger" aria-label="required when topic target is selected">*</span>
+                </label>
+                <select class="form-select" id="topic" name="topic"
+                        aria-describedby="topic-selection-help">
+                  <option value="" selected disabled>Choose a topic...</option>
+                  <% if (topics && topics.length > 0) { %>
+                    <% topics.forEach(topic => { %>
+                      <option value="<%= topic %>"><%= topic %></option>
+                    <% }) %>
+                  <% } %>
+                </select>
+                <div id="topic-selection-help" class="form-text">
+                  <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                  All devices subscribed to this topic will receive the notification
+                </div>
+                <div class="invalid-feedback" role="alert"></div>
+              </div>
+            </fieldset>
+            
+            <!-- Advanced Options -->
+            <fieldset class="mb-4">
+              <legend class="h6 mb-3">
+                <i class="fas fa-cogs me-2" aria-hidden="true"></i>
+                Advanced Options
+              </legend>
+              
+              <div class="mb-3">
+                <label for="clickAction" class="form-label">
+                  Click Action URL (optional)
+                </label>
+                <input type="url" class="form-control" id="clickAction" name="clickAction"
+                       maxlength="500"
+                       placeholder="https://example.com/action"
+                       aria-describedby="click-action-help">
+                <div id="click-action-help" class="form-text">
+                  <i class="fas fa-external-link-alt me-1" aria-hidden="true"></i>
+                  URL that will be opened when the notification is clicked
+                </div>
+                <div class="invalid-feedback" role="alert"></div>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="highPriority" name="highPriority"
+                           aria-describedby="high-priority-help">
+                    <label class="form-check-label fw-medium" for="highPriority">
+                      <i class="fas fa-exclamation me-1" aria-hidden="true"></i>
+                      High Priority
+                    </label>
+                    <div id="high-priority-help" class="form-text">
+                      Wake sleeping devices and ensure immediate delivery
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="silent" name="silent"
+                           aria-describedby="silent-help">
+                    <label class="form-check-label fw-medium" for="silent">
+                      <i class="fas fa-bell-slash me-1" aria-hidden="true"></i>
+                      Silent Notification
+                    </label>
+                    <div id="silent-help" class="form-text">
+                      Send as a silent data message (no alert sound)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+            
+            <!-- Submit Buttons -->
+            <div class="d-flex flex-column flex-md-row gap-2 justify-content-md-end">
+              <button type="button" class="btn btn-outline-secondary" id="resetForm" 
+                      aria-label="Reset form to default values">
+                <i class="fas fa-undo me-1" aria-hidden="true"></i>
+                Reset Form
+              </button>
+              <button type="button" class="btn btn-outline-info" id="previewNotification"
+                      aria-label="Preview notification before sending">
+                <i class="fas fa-eye me-1" aria-hidden="true"></i>
+                Preview
+              </button>
+              <button type="submit" class="btn btn-primary" id="sendNotification"
+                      <%= !hasFirebaseAccounts ? 'disabled' : '' %>
+                      aria-label="Send notification to selected targets">
+                <i class="fas fa-paper-plane me-1" aria-hidden="true"></i>
+                Send Notification
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats & Tips -->
+    <div class="col-lg-4 mb-4">
+      <!-- Quick Stats Card -->
+      <div class="card mb-3" role="region" aria-labelledby="stats-title">
+        <div class="card-header">
+          <h6 id="stats-title" class="mb-0">
+            <i class="fas fa-chart-bar me-2" aria-hidden="true"></i>
+            Quick Statistics
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-6 mb-3">
+              <div class="border-end">
+                <h4 class="text-primary mb-1"><%= devices ? devices.length : 0 %></h4>
+                <small class="text-muted">Total Devices</small>
+              </div>
+            </div>
+            <div class="col-6 mb-3">
+              <h4 class="text-success mb-1"><%= topics ? topics.length : 0 %></h4>
+              <small class="text-muted">Available Topics</small>
+            </div>
+          </div>
+          <div class="text-center">
+            <a href="/devices" class="btn btn-sm btn-outline-primary me-2">
+              <i class="fas fa-mobile-alt me-1" aria-hidden="true"></i>
+              Manage Devices
+            </a>
+            <a href="/topics" class="btn btn-sm btn-outline-success">
+              <i class="fas fa-tags me-1" aria-hidden="true"></i>
+              Manage Topics
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tips Card -->
+      <div class="card" role="region" aria-labelledby="tips-title">
+        <div class="card-header">
+          <h6 id="tips-title" class="mb-0">
+            <i class="fas fa-lightbulb me-2" aria-hidden="true"></i>
+            Notification Tips
+          </h6>
+        </div>
+        <div class="card-body">
+          <ul class="list-unstyled mb-0">
+            <li class="mb-2">
+              <i class="fas fa-check text-success me-2" aria-hidden="true"></i>
+              <small>Keep titles under 50 characters for better visibility</small>
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-check text-success me-2" aria-hidden="true"></i>
+              <small>Use high priority sparingly to avoid user fatigue</small>
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-check text-success me-2" aria-hidden="true"></i>
+              <small>Test with a single device before mass sending</small>
+            </li>
+            <li class="mb-0">
+              <i class="fas fa-check text-success me-2" aria-hidden="true"></i>
+              <small>Images should be HTTPS and under 1MB</small>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Notification History Section -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card" role="region" aria-labelledby="history-title">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 id="history-title" class="mb-0">
+            <i class="fas fa-history me-2" aria-hidden="true"></i>
+            Recent Notifications
+          </h5>
+          <button class="btn btn-sm btn-outline-primary" type="button" 
+                  data-bs-toggle="tooltip" data-bs-placement="top" 
+                  title="Refresh notification history">
+            <i class="fas fa-sync-alt" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline ms-1">Refresh</span>
+          </button>
+        </div>
+        <div class="card-body">
+          <% if (history && history.length > 0) { %>
+            <div class="table-container">
+              <table class="table table-hover data-table" id="notificationsTable" 
+                     role="table" aria-label="Notification history">
+                <thead>
+                  <tr>
+                    <th scope="col">Title</th>
+                    <th scope="col">Message</th>
+                    <th scope="col">Target</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Sent At</th>
+                    <th scope="col" class="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% history.forEach((item, index) => { %>
+                    <tr>
+                      <td>
+                        <div class="fw-medium" title="<%= item.title || 'Untitled' %>">
+                          <%= item.title || 'Untitled' %>
+                        </div>
+                      </td>
+                      <td>
+                        <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" 
+                             title="<%= item.body || 'No message' %>">
+                          <%= item.body || 'No message' %>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge bg-info">
+                          <i class="fas fa-<%= item.target === 'all' ? 'broadcast-tower' : (item.target === 'device' ? 'mobile-alt' : 'tags') %> me-1" aria-hidden="true"></i>
+                          <%= item.target || 'Unknown' %>
+                        </span>
+                      </td>
+                      <td>
+                        <% if (item.status === 'Success' || item.status === 'success') { %>
+                          <span class="badge bg-success" aria-label="Notification sent successfully">
+                            <i class="fas fa-check me-1" aria-hidden="true"></i>
+                            Success
+                          </span>
+                        <% } else { %>
+                          <span class="badge bg-danger" aria-label="Notification failed to send">
+                            <i class="fas fa-times me-1" aria-hidden="true"></i>
+                            Failed
+                          </span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <span data-bs-toggle="tooltip" 
+                              title="<%= new Date(item.createdAt).toLocaleString() %>">
+                          <%= new Date(item.createdAt).toLocaleDateString() %>
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <button class="btn btn-sm btn-outline-info" 
+                                data-notification-details="<%= encodeURIComponent(JSON.stringify(item)) %>"
+                                data-bs-toggle="tooltip" 
+                                title="View notification details"
+                                aria-label="View details for notification: <%= item.title || 'Untitled' %>">
+                          <i class="fas fa-info-circle" aria-hidden="true"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="text-center py-5">
+              <i class="fas fa-bell fa-3x text-muted mb-3" aria-hidden="true"></i>
+              <h6 class="text-muted">No notifications sent yet</h6>
+              <p class="text-muted small">Your notification history will appear here after you send your first notification</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced Notification Details Modal -->
+<div class="modal fade" id="notificationDetailsModal" tabindex="-1" 
+     aria-labelledby="notificationDetailsModalLabel" aria-hidden="true" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="notificationDetailsModalLabel">
+          <i class="fas fa-bell me-2" aria-hidden="true"></i>
+          Notification Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" 
+                aria-label="Close notification details"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="text-muted text-uppercase mb-3">
+              <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+              Basic Information
+            </h6>
+            <dl class="row">
+              <dt class="col-sm-4">Title:</dt>
+              <dd class="col-sm-8" id="modal-title">-</dd>
+              
+              <dt class="col-sm-4">Message:</dt>
+              <dd class="col-sm-8" id="modal-body">-</dd>
+              
+              <dt class="col-sm-4">Target:</dt>
+              <dd class="col-sm-8" id="modal-target">-</dd>
+              
+              <dt class="col-sm-4">Status:</dt>
+              <dd class="col-sm-8" id="modal-status">-</dd>
+              
+              <dt class="col-sm-4">Sent By:</dt>
+              <dd class="col-sm-8" id="modal-sent-by">-</dd>
+              
+              <dt class="col-sm-4">Account:</dt>
+              <dd class="col-sm-8" id="modal-account">-</dd>
+              
+              <dt class="col-sm-4">Timestamp:</dt>
+              <dd class="col-sm-8" id="modal-time">-</dd>
+            </dl>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-muted text-uppercase mb-3">
+              <i class="fas fa-code me-1" aria-hidden="true"></i>
+              Additional Data
+            </h6>
+            <div class="card">
+              <div class="card-body p-2">
+                <pre id="modal-data" class="mb-0 small" 
+                     style="max-height: 250px; overflow-y: auto; background: transparent; border: none;"
+                     aria-label="Additional notification data"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1" aria-hidden="true"></i>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" 
+     aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewModalLabel">
+          <i class="fas fa-eye me-2" aria-hidden="true"></i>
+          Notification Preview
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" 
+                aria-label="Close notification preview"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card border-0 bg-light">
+          <div class="card-body">
+            <div class="d-flex align-items-start">
+              <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-3" 
+                   style="width: 40px; height: 40px;">
+                <i class="fas fa-bell text-white" aria-hidden="true"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h6 class="mb-1 fw-bold" id="preview-title">Notification Title</h6>
+                <p class="mb-1 text-muted" id="preview-body">Notification message will appear here</p>
+                <small class="text-muted">
+                  <i class="fas fa-clock me-1" aria-hidden="true"></i>
+                  Just now
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <h6 class="text-muted mb-2">Delivery Summary:</h6>
+          <ul class="list-unstyled mb-0">
+            <li id="preview-target">
+              <i class="fas fa-bullseye me-2 text-primary" aria-hidden="true"></i>
+              <span>Target information will appear here</span>
+            </li>
+            <li id="preview-priority" class="d-none">
+              <i class="fas fa-exclamation me-2 text-warning" aria-hidden="true"></i>
+              <span>High priority notification</span>
+            </li>
+            <li id="preview-silent" class="d-none">
+              <i class="fas fa-bell-slash me-2 text-muted" aria-hidden="true"></i>
+              <span>Silent notification (no sound)</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-edit me-1" aria-hidden="true"></i>
+          Edit
+        </button>
+        <button type="button" class="btn btn-primary" id="confirmSend">
+          <i class="fas fa-paper-plane me-1" aria-hidden="true"></i>
+          Send Now
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced JavaScript integrated with FCM Dashboard -->
+<script>
+(function() {
+  'use strict';
+
+  // Integration with FCM Dashboard
+  const FCM = window.FCMDashboard?.FCM || {};
+
+
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    initNotificationPage();
+  });
+
+  /**
+   * Initialize notification page functionality
+   */
+  function initNotificationPage() {
+    initNotificationForm();
+    initNotificationDetailsModal();
+    initPreviewFunctionality();
+    initCharacterCounters();
+    initNotificationsTable();
+    
+    // Integrate with FCM tooltips if available
+    if (FCM.ui?.initTooltips) {
+      FCM.ui.initTooltips();
+    }
+  }
+
+  /**
+   * Initialize notification form functionality
+   */
+  function initNotificationForm() {
+    const form = document.getElementById('notification-form');
+    const resetBtn = document.getElementById('resetForm');
+    
+    if (!form) return;
+
+    // Form reset functionality
+    resetBtn?.addEventListener('click', function() {
+      if (confirm('Are you sure you want to reset the form? All entered data will be lost.')) {
+        form.reset();
+        form.classList.remove('was-validated');
+        
+        // Reset target selection
+        document.getElementById('targetAll').checked = true;
+        updateTargetSelection();
+        
+        // Clear validation states
+        form.querySelectorAll('.is-valid, .is-invalid').forEach(el => {
+          el.classList.remove('is-valid', 'is-invalid');
+        });
+        
+        // Update character counters
+        updateAllCounters();
+        
+        // Announce to screen readers
+        if (FCM.accessibility?.announce) {
+          FCM.accessibility.announce('Form has been reset');
+        }
+      }
+    });
+
+    // Enhanced form validation
+    form.addEventListener('submit', function(e) {
+      if (!validateForm()) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Focus on first invalid field
+        const firstInvalid = form.querySelector('.is-invalid');
+        if (firstInvalid) {
+          firstInvalid.focus();
+          firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+      
+      form.classList.add('was-validated');
+    });
+
+    // Target selection change handlers
+    document.querySelectorAll('input[name="targetType"]').forEach(radio => {
+      radio.addEventListener('change', updateTargetSelection);
+    });
+    
+    // Initial target selection update
+    updateTargetSelection();
+  }
+
+  /**
+   * Initialize character counters for text inputs
+   */
+  function initCharacterCounters() {
+    const textInputs = [
+      { id: 'title', max: 100 },
+      { id: 'body', max: 1000 }
+    ];
+
+    textInputs.forEach(({ id, max }) => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.addEventListener('input', () => updateCounter(id, max));
+        updateCounter(id, max); // Initial update
+      }
+    });
+  }
+
+  /**
+   * Update character counter for a specific input
+   */
+  function updateCounter(inputId, maxLength) {
+    const input = document.getElementById(inputId);
+    const counter = document.getElementById(`${inputId}-counter`);
+    
+    if (input && counter) {
+      const count = input.value.length;
+      counter.textContent = `${count}/${maxLength}`;
+      
+      // Update styling based on character count
+      if (count > maxLength * 0.9) {
+        counter.className = 'text-warning';
+      } else if (count > maxLength * 0.8) {
+        counter.className = 'text-info';
+      } else {
+        counter.className = 'text-muted';
+      }
+    }
+  }
+
+  /**
+   * Update all character counters
+   */
+  function updateAllCounters() {
+    updateCounter('title', 100);
+    updateCounter('body', 1000);
+  }
+
+  /**
+   * Form validation
+   */
+  function validateForm() {
+    const form = document.getElementById('notification-form');
+    let isValid = true;
+
+    // Clear previous validation
+    form.querySelectorAll('.is-valid, .is-invalid').forEach(el => {
+      el.classList.remove('is-valid', 'is-invalid');
+    });
+
+    // Validate required fields
+    const requiredFields = form.querySelectorAll('[required]');
+    requiredFields.forEach(field => {
+      if (!field.value.trim()) {
+        field.classList.add('is-invalid');
+        isValid = false;
+      } else {
+        field.classList.add('is-valid');
+      }
+    });
+
+    // Validate target-specific fields
+    const targetType = document.querySelector('input[name="targetType"]:checked')?.value;
+    if (targetType === 'device') {
+      const deviceSelect = document.getElementById('deviceToken');
+      if (!deviceSelect.value) {
+        deviceSelect.classList.add('is-invalid');
+        isValid = false;
+      } else {
+        deviceSelect.classList.add('is-valid');
+      }
+    } else if (targetType === 'topic') {
+      const topicSelect = document.getElementById('topic');
+      if (!topicSelect.value) {
+        topicSelect.classList.add('is-invalid');
+        isValid = false;
+      } else {
+        topicSelect.classList.add('is-valid');
+      }
+    }
+
+    // Validate URLs
+    const urlFields = ['imageUrl', 'clickAction'];
+    urlFields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field.value) {
+        if (isValidUrl(field.value)) {
+          field.classList.add('is-valid');
+        } else {
+          field.classList.add('is-invalid');
+          isValid = false;
+        }
+      }
+    });
+
+    return isValid;
+  }
+
+  /**
+   * URL validation
+   */
+  function isValidUrl(string) {
+    try {
+      const url = new URL(string);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /**
+   * Update target selection visibility
+   */
+  function updateTargetSelection() {
+    const targetType = document.querySelector('input[name="targetType"]:checked')?.value;
+    const deviceSelection = document.getElementById('deviceSelection');
+    const topicSelection = document.getElementById('topicSelection');
+    
+    // Hide all selections
+    deviceSelection?.classList.add('d-none');
+    topicSelection?.classList.add('d-none');
+    
+    // Clear validation and requirements
+    [deviceSelection, topicSelection].forEach(section => {
+      const select = section?.querySelector('select');
+      if (select) {
+        select.required = false;
+        select.classList.remove('is-invalid', 'is-valid');
+      }
+    });
+    
+    // Show relevant selection
+    if (targetType === 'device' && deviceSelection) {
+      deviceSelection.classList.remove('d-none');
+      deviceSelection.querySelector('select').required = true;
+    } else if (targetType === 'topic' && topicSelection) {
+      topicSelection.classList.remove('d-none');
+      topicSelection.querySelector('select').required = true;
+    }
+    
+    // Announce change
+    if (FCM.accessibility?.announce) {
+      FCM.accessibility.announce(`Target changed to ${targetType || 'all devices'}`);
+    }
+  }
+
+    /**
+   * Initialize notification details modal - simple and clean
+   */
+  function initNotificationDetailsModal() {
+    // Remove any existing listeners to prevent duplicates
+    document.removeEventListener('click', handleNotificationClick);
+    document.addEventListener('click', handleNotificationClick);
+  }
+
+  let currentTriggerButton = null;
+
+  function handleNotificationClick(e) {
+    const button = e.target.closest('[data-notification-details]');
+    if (!button) return;
+    
+    e.preventDefault();
+    currentTriggerButton = button; // Store reference
+    
+    const modal = document.getElementById('notificationDetailsModal');
+    if (!modal) return;
+    
+    // Check if there's already a Bootstrap modal instance
+    let modalInstance = bootstrap.Modal.getInstance(modal);
+    if (!modalInstance) {
+      modalInstance = new bootstrap.Modal(modal);
+    }
+    
+    // Clean up any existing backdrops before showing
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    
+    populateModalData(button);
+    modalInstance.show();
+  }
+
+  function populateModalData(button) {
+    try {
+      const notificationData = JSON.parse(decodeURIComponent(button.getAttribute('data-notification-details')));
+      
+      // Populate modal fields
+      const fields = {
+        'modal-title': notificationData.title || 'Untitled',
+        'modal-body': notificationData.body || 'No message',
+        'modal-target': notificationData.target || 'Unknown',
+        'modal-sent-by': notificationData.sentBy || 'System',
+        'modal-account': notificationData.accountName || 'Default',
+        'modal-time': new Date(notificationData.createdAt).toLocaleString()
+      };
+      
+      Object.entries(fields).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+      });
+      
+      // Status badge
+      const modalStatus = document.getElementById('modal-status');
+      if (modalStatus) {
+        const isSuccess = notificationData.status === 'Success' || notificationData.status === 'success';
+        modalStatus.innerHTML = isSuccess 
+          ? '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Success</span>'
+          : '<span class="badge bg-danger"><i class="fas fa-times me-1"></i>Failed</span>';
+      }
+      
+      // Additional data
+      const modalData = document.getElementById('modal-data');
+      if (modalData) {
+        let dataText = 'No additional data';
+        try {
+          if (notificationData.data) {
+            const dataObj = typeof notificationData.data === 'string' 
+              ? JSON.parse(notificationData.data) 
+              : notificationData.data;
+            dataText = JSON.stringify(dataObj, null, 2);
+          }
+        } catch (e) {
+          dataText = 'Could not parse additional data';
+        }
+        modalData.textContent = dataText;
+      }
+    } catch (error) {
+      console.error('Error displaying notification details:', error);
+    }
+  }
+
+  // Handle modal close and return focus
+  document.addEventListener('hidden.bs.modal', function(e) {
+    if (e.target.id === 'notificationDetailsModal') {
+      // Clean up any leftover backdrops
+      document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+      
+      // Return focus to the button that triggered the modal
+      if (currentTriggerButton) {
+        setTimeout(() => {
+          currentTriggerButton.focus();
+          currentTriggerButton = null;
+        }, 150);
+      }
+    }
+  });
+
+  /**
+   * Initialize preview functionality
+   */
+  function initPreviewFunctionality() {
+    const previewBtn = document.getElementById('previewNotification');
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    const confirmSendBtn = document.getElementById('confirmSend');
+    
+    previewBtn?.addEventListener('click', function() {
+      updatePreview();
+      previewModal.show();
+    });
+    
+    confirmSendBtn?.addEventListener('click', function() {
+      previewModal.hide();
+      document.getElementById('notification-form').submit();
+    });
+  }
+
+  /**
+   * Update preview modal content
+   */
+  function updatePreview() {
+    const title = document.getElementById('title').value || 'Untitled Notification';
+    const body = document.getElementById('body').value || 'No message content';
+    const targetType = document.querySelector('input[name="targetType"]:checked')?.value;
+    const highPriority = document.getElementById('highPriority').checked;
+    const silent = document.getElementById('silent').checked;
+    
+    // Sanitize and display content
+    document.getElementById('preview-title').textContent = title;
+    document.getElementById('preview-body').textContent = body;
+    
+    // Update target info
+    let targetText = 'All devices';
+    if (targetType === 'device') {
+      const deviceSelect = document.getElementById('deviceToken');
+      const selectedOption = deviceSelect.options[deviceSelect.selectedIndex];
+      targetText = selectedOption?.text || 'Specific device';
+    } else if (targetType === 'topic') {
+      const topicSelect = document.getElementById('topic');
+      targetText = `Topic: ${topicSelect.value || 'Unknown'}`;
+    }
+    document.getElementById('preview-target').innerHTML = 
+      `<i class="fas fa-bullseye me-2 text-primary" aria-hidden="true"></i>${targetText}`;
+    
+    // Update options
+    document.getElementById('preview-priority').classList.toggle('d-none', !highPriority);
+    document.getElementById('preview-silent').classList.toggle('d-none', !silent);
+  }
+
+  /**
+   * Initialize notifications table with DataTable
+   */
+  function initNotificationsTable() {
+    const $table = $('#notificationsTable');
+    if (!$table.length || !window.FCMDashboard?.FCM?.dataTables?.safeInit) return;
+    
+    const options = {
+      order: [[4, 'desc']], // Sort by sent date
+      language: {
+        emptyTable: 'No notifications sent yet',
+        zeroRecords: 'No notifications match your search'
+      },
+      columnDefs: [{
+        targets: [0, 1], // Title and Message columns
+        render: function(data, type, row) {
+          if (type === 'display' && data && data.length > 50) {
+            return '<span title="' + data + '">' + data.substr(0, 47) + '...</span>';
+          }
+          return data || '';
+        }
+      }],
+      drawCallback: function() {
+        initNotificationDetailsModal();
+      }
+    };
+    
+    window.FCMDashboard.FCM.dataTables.safeInit('#notificationsTable', options);
+  }
+
+
+
+  // Make functions globally accessible for compatibility
+  window.updateTargetSelection = updateTargetSelection;
+  window.initNotificationDetailsModal = initNotificationDetailsModal;
+
+})();
+</script>
+
+<%- include('../partials/footer') %> 

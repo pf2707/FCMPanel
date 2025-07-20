@@ -1,0 +1,953 @@
+<%- include('../partials/csrf') %>
+<% 
+  // Set active tab for navigation highlighting
+  var activeTab = 'accounts';
+%>
+
+<!-- Skip to main content -->
+<a href="#accounts-content" class="skip-link">Skip to accounts management</a>
+
+<div class="container-fluid" id="accounts-content">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h2 mb-2">
+            <i class="fas fa-fire me-2" aria-hidden="true"></i>
+            Firebase Accounts
+          </h1>
+          <p class="lead text-muted mb-0">Manage your Firebase Cloud Messaging accounts</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" onclick="location.reload()" 
+                  aria-label="Refresh accounts list">
+            <i class="fas fa-sync-alt me-1" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Refresh</span>
+          </button>
+          <a href="/accounts/add" class="btn btn-primary" aria-label="Add new Firebase account">
+            <i class="fas fa-plus me-1" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Add Firebase Account</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account Statistics -->
+  <% if (accounts && accounts.length > 0) { %>
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-primary mb-1"><%= accounts.length %></h3>
+              <p class="text-muted mb-0">Total Accounts</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-fire fa-2x text-primary" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card active">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-success mb-1">
+                <%= accounts.filter(a => a.isActive).length %>
+              </h3>
+              <p class="text-muted mb-0">Active Accounts</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-success" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-warning mb-1">
+                <%= accounts.filter(a => a.isDefault).length %>
+              </h3>
+              <p class="text-muted mb-0">Default Account</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-star fa-2x text-warning" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-info mb-1">
+                <%= accounts.filter(a => a.lastUsed).length %>
+              </h3>
+              <p class="text-muted mb-0">Used Accounts</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-clock fa-2x text-info" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Accounts Management Section -->
+  <div class="row">
+    <div class="col-12">
+      <% if (accounts && accounts.length > 0) { %>
+        <div class="card" role="region" aria-labelledby="accounts-table-title">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 id="accounts-table-title" class="mb-0">
+              <i class="fas fa-list me-2" aria-hidden="true"></i>
+              Firebase Accounts
+            </h5>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-info" id="testAllAccounts"
+                      aria-label="Test connection for all accounts">
+                <i class="fas fa-vial me-1" aria-hidden="true"></i>
+                <span class="d-none d-sm-inline">Test All</span>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table table-hover data-table" id="accounts-table" 
+                     role="table" aria-label="Firebase accounts management table">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <i class="fas fa-id-card me-1" aria-hidden="true"></i>
+                      Account
+                    </th>
+                    <th scope="col">
+                      <i class="fas fa-project-diagram me-1" aria-hidden="true"></i>
+                      Project ID
+                    </th>
+                    <th scope="col">
+                      <i class="fas fa-heartbeat me-1" aria-hidden="true"></i>
+                      Status
+                    </th>
+                    <th scope="col">
+                      <i class="fas fa-clock me-1" aria-hidden="true"></i>
+                      Last Used
+                    </th>
+                    <th scope="col" class="text-center">
+                      <i class="fas fa-cogs me-1" aria-hidden="true"></i>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% accounts.forEach(account => { %>
+                    <tr id="account-row-<%= account.id %>" class="account-row">
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div class="account-avatar me-3">
+                            <i class="fas fa-fire fa-lg text-primary" aria-hidden="true"></i>
+                          </div>
+                          <div>
+                            <div class="fw-medium">
+                              <%= account.name %>
+                              <% if (account.isDefault) { %>
+                                <span class="badge bg-warning text-dark ms-2" aria-label="Default account">
+                                  <i class="fas fa-star me-1" aria-hidden="true"></i>
+                                  Default
+                                </span>
+                              <% } %>
+                            </div>
+                            <small class="text-muted d-block">
+                              <i class="fas fa-envelope me-1" aria-hidden="true"></i>
+                              <%= account.clientEmail ? account.clientEmail.substring(0, 30) + '...' : 'No email' %>
+                            </small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <code class="small"><%= account.projectId %></code>
+                      </td>
+                      <td>
+                        <% if (account.isActive) { %>
+                          <span class="badge bg-success" aria-label="Account is active">
+                            <i class="fas fa-check-circle me-1" aria-hidden="true"></i>
+                            Active
+                          </span>
+                        <% } else { %>
+                          <span class="badge bg-danger" aria-label="Account is inactive">
+                            <i class="fas fa-times-circle me-1" aria-hidden="true"></i>
+                            Inactive
+                          </span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <% if (account.lastUsed) { %>
+                          <span data-bs-toggle="tooltip" 
+                                title="<%= new Date(account.lastUsed).toLocaleString() %>"
+                                aria-label="Last used: <%= new Date(account.lastUsed).toLocaleString() %>">
+                            <%= new Date(account.lastUsed).toLocaleDateString() %>
+                          </span>
+                          <small class="text-muted d-block">
+                            <%= new Date(account.lastUsed).toLocaleTimeString() %>
+                          </small>
+                        <% } else { %>
+                          <span class="text-muted">
+                            <i class="fas fa-minus me-1" aria-hidden="true"></i>
+                            Never
+                          </span>
+                        <% } %>
+                      </td>
+                      <td class="text-center">
+                        <div class="btn-group" role="group" aria-label="Actions for <%= account.name %>">
+                          <a href="/accounts/edit/<%= account.id %>" 
+                             class="btn btn-sm btn-outline-primary" 
+                             data-bs-toggle="tooltip" 
+                             title="Edit account"
+                             aria-label="Edit account <%= account.name %>">
+                            <i class="fas fa-edit" aria-hidden="true"></i>
+                          </a>
+                          <button type="button" 
+                                  class="btn btn-sm btn-outline-info test-connection-btn" 
+                                  data-account-id="<%= account.id %>" 
+                                  data-account-name="<%= account.name %>"
+                                  data-bs-toggle="tooltip" 
+                                  title="Test connection"
+                                  aria-label="Test connection for <%= account.name %>">
+                            <i class="fas fa-vial test-icon-<%= account.id %>" aria-hidden="true"></i>
+                          </button>
+                          <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                    type="button" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false"
+                                    aria-label="More actions for <%= account.name %>">
+                              <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                              <% if (!account.isDefault) { %>
+                              <li>
+                                <form action="/accounts/default/<%= account.id %>" method="POST" class="d-inline">
+                                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                  <button type="submit" class="dropdown-item"
+                                          aria-label="Set <%= account.name %> as default account">
+                                    <i class="fas fa-star me-2" aria-hidden="true"></i>
+                                    Set as Default
+                                  </button>
+                                </form>
+                              </li>
+                              <li><hr class="dropdown-divider"></li>
+                              <% } %>
+                              <li>
+                                <button type="button" class="dropdown-item text-danger"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal<%= account.id %>"
+                                        aria-label="Delete account <%= account.name %>">
+                                  <i class="fas fa-trash me-2" aria-hidden="true"></i>
+                                  Delete Account
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    
+
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Test Result Containers (Outside DataTable to prevent conflicts) -->
+            <% accounts.forEach(account => { %>
+              <div id="test-result-container-<%= account.id %>" class="d-none test-result-container mt-3" 
+                   role="region" aria-labelledby="test-title-<%= account.id %>">
+                <div class="card border-warning">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h6 id="test-title-<%= account.id %>" class="text-muted text-uppercase mb-0">
+                        <i class="fas fa-vial me-1" aria-hidden="true"></i>
+                        Connection Test: <%= account.name %>
+                      </h6>
+                      <button type="button" class="btn btn-sm btn-outline-secondary close-test-btn" 
+                              data-account-id="<%= account.id %>"
+                              aria-label="Close test results">
+                        <i class="fas fa-times me-1" aria-hidden="true"></i>
+                        Close
+                      </button>
+                    </div>
+                    
+                    <div class="test-result">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="spinner-border spinner-border-sm text-primary me-2 d-none test-spinner-<%= account.id %>" 
+                             role="status" aria-hidden="true">
+                          <span class="sr-only">Testing connection...</span>
+                        </div>
+                        <span class="test-status-<%= account.id %>">Preparing test...</span>
+                      </div>
+                      <div class="test-message-<%= account.id %>"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      <% } else { %>
+        <!-- No Accounts State -->
+        <div class="card" role="region" aria-labelledby="no-accounts-title">
+          <div class="card-body text-center py-5">
+            <i class="fas fa-fire fa-4x text-muted mb-3" aria-hidden="true"></i>
+            <h4 id="no-accounts-title" class="text-muted mb-3">No Firebase Accounts Found</h4>
+            <p class="text-muted mb-4">
+              You need to add at least one Firebase account to send notifications through FCM.
+            </p>
+            <a href="/accounts/add" class="btn btn-primary btn-lg" aria-label="Add your first Firebase account">
+              <i class="fas fa-plus me-2" aria-hidden="true"></i>
+              Add Your First Firebase Account
+            </a>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Help and Instructions -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card" role="region" aria-labelledby="help-section-title">
+        <div class="card-header">
+          <h5 id="help-section-title" class="mb-0">
+            <i class="fas fa-question-circle me-2" aria-hidden="true"></i>
+            Firebase Account Management Guide
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-8">
+              <h6 class="text-muted text-uppercase mb-3">
+                <i class="fas fa-list-check me-1" aria-hidden="true"></i>
+                Getting Started
+              </h6>
+              <ol class="list-group list-group-numbered">
+                <li class="list-group-item d-flex align-items-start">
+                  <div class="ms-2 me-auto">
+                    <div class="fw-bold">Add Firebase Account</div>
+                    <small class="text-muted">Connect your Firebase project with service account credentials</small>
+                  </div>
+                  <span class="badge bg-primary rounded-pill">1</span>
+                </li>
+                <li class="list-group-item d-flex align-items-start">
+                  <div class="ms-2 me-auto">
+                    <div class="fw-bold">Test Connection</div>
+                    <small class="text-muted">Verify your account works with Firebase Cloud Messaging</small>
+                  </div>
+                  <span class="badge bg-primary rounded-pill">2</span>
+                </li>
+                <li class="list-group-item d-flex align-items-start">
+                  <div class="ms-2 me-auto">
+                    <div class="fw-bold">Set Default Account</div>
+                    <small class="text-muted">Choose which account to use by default for notifications</small>
+                  </div>
+                  <span class="badge bg-primary rounded-pill">3</span>
+                </li>
+                <li class="list-group-item d-flex align-items-start">
+                  <div class="ms-2 me-auto">
+                    <div class="fw-bold">Send Notifications</div>
+                    <small class="text-muted">Start sending push notifications to your devices</small>
+                  </div>
+                  <span class="badge bg-primary rounded-pill">4</span>
+                </li>
+              </ol>
+            </div>
+            
+            <div class="col-lg-4">
+              <h6 class="text-muted text-uppercase mb-3">
+                <i class="fas fa-external-link-alt me-1" aria-hidden="true"></i>
+                Quick Links
+              </h6>
+              <div class="d-grid gap-2">
+                <a href="https://console.firebase.google.com" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   class="btn btn-outline-primary"
+                   aria-label="Open Firebase Console in new tab">
+                  <i class="fas fa-fire me-1" aria-hidden="true"></i>
+                  Firebase Console
+                </a>
+                <a href="/accounts/add" 
+                   class="btn btn-outline-success"
+                   aria-label="Add new Firebase account">
+                  <i class="fas fa-plus me-1" aria-hidden="true"></i>
+                  Add New Account
+                </a>
+                <button class="btn btn-outline-info" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#helpModal"
+                        aria-label="View detailed help">
+                  <i class="fas fa-question-circle me-1" aria-hidden="true"></i>
+                  Detailed Help
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Account Modals -->
+<% if (accounts && accounts.length > 0) { %>
+  <% accounts.forEach(account => { %>
+    <div class="modal fade" id="deleteModal<%= account.id %>" tabindex="-1" 
+         aria-labelledby="deleteModalLabel<%= account.id %>" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteModalLabel<%= account.id %>">
+              <i class="fas fa-exclamation-triangle me-2 text-danger" aria-hidden="true"></i>
+              Delete Firebase Account
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" 
+                    aria-label="Close delete confirmation"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-danger" role="alert">
+              <h6 class="alert-heading">
+                <i class="fas fa-warning me-2" aria-hidden="true"></i>
+                Warning: This action cannot be undone!
+              </h6>
+              <p class="mb-0">
+                Are you sure you want to delete the Firebase account: 
+                <strong><%= account.name %></strong>?
+              </p>
+            </div>
+            
+            <div class="mb-3">
+              <h6>What will happen:</h6>
+              <ul class="mb-0">
+                <li>The account will be permanently removed from the system</li>
+                <li>Any notifications using this account will fail</li>
+                <li>You cannot recover this account configuration</li>
+                <% if (account.isDefault) { %>
+                <li class="text-warning">
+                  <i class="fas fa-star me-1" aria-hidden="true"></i>
+                  This is your default account - you'll need to set another as default
+                </li>
+                <% } %>
+              </ul>
+            </div>
+            
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="confirmDelete<%= account.id %>" required>
+              <label class="form-check-label" for="confirmDelete<%= account.id %>">
+                I understand that this action cannot be undone
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="fas fa-times me-1" aria-hidden="true"></i>
+              Cancel
+            </button>
+            <form action="/accounts/delete/<%= account.id %>" method="POST" class="d-inline delete-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="submit" class="btn btn-danger" id="deleteButton<%= account.id %>" disabled
+                      aria-label="Confirm delete account <%= account.name %>">
+                <i class="fas fa-trash me-1" aria-hidden="true"></i>
+                Delete Account
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% }) %>
+<% } %>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1" 
+     aria-labelledby="helpModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="helpModalLabel">
+          <i class="fas fa-question-circle me-2" aria-hidden="true"></i>
+          Firebase Account Help
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" 
+                aria-label="Close help modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="accordion" id="helpAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                <i class="fas fa-fire me-2" aria-hidden="true"></i>
+                What are Firebase Accounts?
+              </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse show" 
+                 aria-labelledby="headingOne" data-bs-parent="#helpAccordion">
+              <div class="accordion-body">
+                <p>Firebase accounts store the credentials needed to connect to your Firebase projects and send push notifications through Firebase Cloud Messaging (FCM).</p>
+                <p>Each account represents one Firebase project and includes:</p>
+                <ul>
+                  <li>Project ID - Your Firebase project identifier</li>
+                  <li>Service Account Email - Authentication email</li>
+                  <li>Private Key - Secure authentication key</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingTwo">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                <i class="fas fa-key me-2" aria-hidden="true"></i>
+                How to Get Service Account Credentials?
+              </button>
+            </h2>
+            <div id="collapseTwo" class="accordion-collapse collapse" 
+                 aria-labelledby="headingTwo" data-bs-parent="#helpAccordion">
+              <div class="accordion-body">
+                <ol>
+                  <li>Go to the <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></li>
+                  <li>Select your project</li>
+                  <li>Click the gear icon → Project Settings</li>
+                  <li>Go to the Service Accounts tab</li>
+                  <li>Click "Generate new private key"</li>
+                  <li>Download the JSON file</li>
+                  <li>Copy the values to the add account form</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingThree">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                <i class="fas fa-shield-alt me-2" aria-hidden="true"></i>
+                Security Best Practices
+              </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" 
+                 aria-labelledby="headingThree" data-bs-parent="#helpAccordion">
+              <div class="accordion-body">
+                <ul>
+                  <li><strong>Keep credentials secure:</strong> Never share or commit service account keys</li>
+                  <li><strong>Regular rotation:</strong> Rotate service account keys periodically</li>
+                  <li><strong>Environment variables:</strong> Use environment variables in production</li>
+                  <li><strong>Principle of least privilege:</strong> Only grant necessary permissions</li>
+                  <li><strong>Monitor usage:</strong> Regularly check account activity and usage</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1" aria-hidden="true"></i>
+          Close
+        </button>
+        <a href="https://firebase.google.com/docs/admin/setup" 
+           target="_blank" 
+           rel="noopener noreferrer"
+           class="btn btn-primary"
+           aria-label="Open Firebase documentation in new tab">
+          <i class="fas fa-external-link-alt me-1" aria-hidden="true"></i>
+          Firebase Documentation
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced JavaScript -->
+<script>
+(function() {
+  'use strict';
+
+  // Integration with FCM Dashboard
+  const FCM = window.FCMDashboard?.FCM || {};
+
+  // HTML escaping function to prevent XSS
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text ? text.toString().replace(/[&<>"']/g, function(m) { return map[m]; }) : '';
+  }
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    initAccountsPage();
+  });
+
+  /**
+   * Initialize accounts page functionality
+   */
+  function initAccountsPage() {
+    initAccountsTable();
+    initTestConnections();
+    initDeleteConfirmations();
+    initFormHandlers();
+    
+    // Integrate with FCM tooltips if available
+    if (FCM.ui?.initTooltips) {
+      FCM.ui.initTooltips();
+    }
+  }
+
+  /**
+   * Initialize accounts table with DataTables
+   */
+  function initAccountsTable() {
+    const $table = $('#accounts-table');
+    if (!$table.length || !window.FCMDashboard?.FCM?.dataTables?.safeInit) return;
+    
+    // Clear any test result containers
+    document.querySelectorAll('.test-result-container').forEach(container => {
+      container.classList.add('d-none');
+    });
+    
+    const options = {
+      order: [[0, 'asc']], // Sort by account name
+      language: {
+        emptyTable: 'No accounts found',
+        zeroRecords: 'No accounts match your search'
+      }
+    };
+    
+    window.FCMDashboard.FCM.dataTables.safeInit('#accounts-table', options);
+  }
+
+
+
+  /**
+   * Initialize test connection functionality
+   */
+  function initTestConnections() {
+    // Individual test buttons
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.test-connection-btn')) {
+        e.preventDefault();
+        const button = e.target.closest('.test-connection-btn');
+        const accountId = button.dataset.accountId;
+        const accountName = button.dataset.accountName;
+        testConnection(accountId, accountName);
+      }
+
+      if (e.target.closest('.close-test-btn')) {
+        e.preventDefault();
+        const button = e.target.closest('.close-test-btn');
+        const accountId = button.dataset.accountId;
+        closeTestResult(accountId);
+      }
+    });
+
+    // Test all accounts button
+    const testAllButton = document.getElementById('testAllAccounts');
+    if (testAllButton) {
+      testAllButton.addEventListener('click', function() {
+        const testButtons = document.querySelectorAll('.test-connection-btn');
+        testButtons.forEach((button, index) => {
+          setTimeout(() => {
+            const accountId = button.dataset.accountId;
+            const accountName = button.dataset.accountName;
+            testConnection(accountId, accountName);
+          }, index * 1000); // Stagger tests by 1 second
+        });
+      });
+    }
+  }
+
+  /**
+   * Test connection for a specific account
+   */
+  function testConnection(accountId, accountName) {
+    const resultContainer = document.getElementById(`test-result-container-${accountId}`);
+    const spinner = document.querySelector(`.test-spinner-${accountId}`);
+    const icon = document.querySelector(`.test-icon-${accountId}`);
+    const messageContainer = document.querySelector(`.test-message-${accountId}`);
+    const statusElement = document.querySelector(`.test-status-${accountId}`);
+
+    if (!resultContainer || !messageContainer) {
+      console.error(`Test elements not found for account ID: ${accountId}`);
+      if (window.FCMDashboard?.FCM?.ui?.showToast) {
+        window.FCMDashboard.FCM.ui.showToast('Error: Could not initialize test', 'error');
+      }
+      return;
+    }
+
+    // Show the result container
+    resultContainer.classList.remove('d-none');
+
+    // Update UI for testing state
+    if (spinner) spinner.classList.remove('d-none');
+    if (icon) icon.className = 'fas fa-spinner fa-spin';
+    if (statusElement) statusElement.textContent = 'Testing connection...';
+
+    // Clear previous messages
+    messageContainer.innerHTML = '';
+
+    // Get CSRF token
+    const csrfToken = document.querySelector('input[name="_csrf"]')?.value || '';
+
+    // Perform the test
+    fetch(`/accounts/test/${accountId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({ _csrf: csrfToken })
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Reset UI
+      if (spinner) spinner.classList.add('d-none');
+      if (icon) icon.className = 'fas fa-vial';
+      
+      // Update status and message
+      if (data.success) {
+        if (statusElement) statusElement.textContent = 'Connection successful!';
+        
+        messageContainer.innerHTML = `
+          <div class="alert alert-success" role="alert">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-check-circle fa-2x me-3 text-success" aria-hidden="true"></i>
+              <div class="flex-grow-1">
+                <h6 class="alert-heading mb-1">Connection Successful</h6>
+                <p class="mb-0">${escapeHtml(data.message)}</p>
+              </div>
+            </div>
+            ${data.detail ? `
+            <hr class="my-3">
+            <div class="row small">
+              <div class="col-md-6">
+                <ul class="list-unstyled mb-0">
+                  <li><strong>Project ID:</strong> ${escapeHtml(data.detail.projectId)}</li>
+                  <li><strong>App Name:</strong> ${escapeHtml(data.detail.appName)}</li>
+                </ul>
+              </div>
+              <div class="col-md-6">
+                <ul class="list-unstyled mb-0">
+                  <li><strong>Email:</strong> ${escapeHtml(data.detail.serviceAccountEmail)}</li>
+                  <li><strong>Messaging API:</strong> 
+                    <span class="badge ${data.detail.messagingAvailable ? 'bg-success' : 'bg-warning'}">
+                      ${data.detail.messagingAvailable ? 'Available' : 'Not Available'}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>` : ''}
+          </div>
+        `;
+        
+        // Announce success
+        if (FCM.accessibility?.announce) {
+          FCM.accessibility.announce(`Connection test successful for ${accountName}`);
+        }
+      } else {
+        if (statusElement) statusElement.textContent = 'Connection failed';
+        
+        messageContainer.innerHTML = `
+          <div class="alert alert-danger" role="alert">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-times-circle fa-2x me-3 text-danger" aria-hidden="true"></i>
+              <div class="flex-grow-1">
+                <h6 class="alert-heading mb-1">Connection Failed</h6>
+                <p class="mb-0">${escapeHtml(data.message)}</p>
+              </div>
+            </div>
+            ${data.detail ? `
+            <hr class="my-3">
+            <div class="small">
+              <ul class="list-unstyled mb-0">
+                <li><strong>Error:</strong> ${escapeHtml(data.detail.error || 'Unknown error')}</li>
+                ${data.detail.errorCode ? `<li><strong>Error Code:</strong> ${escapeHtml(data.detail.errorCode)}</li>` : ''}
+                ${data.detail.projectId ? `<li><strong>Project ID:</strong> ${escapeHtml(data.detail.projectId)}</li>` : ''}
+              </ul>
+            </div>` : ''}
+          </div>
+        `;
+        
+        // Announce failure
+        if (FCM.accessibility?.announce) {
+          FCM.accessibility.announce(`Connection test failed for ${accountName}`);
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error testing connection:', error);
+      
+      // Reset UI
+      if (spinner) spinner.classList.add('d-none');
+      if (icon) icon.className = 'fas fa-vial';
+      if (statusElement) statusElement.textContent = 'Test failed';
+      
+      messageContainer.innerHTML = `
+        <div class="alert alert-danger" role="alert">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle fa-2x me-3 text-danger" aria-hidden="true"></i>
+            <div class="flex-grow-1">
+              <h6 class="alert-heading mb-1">Test Error</h6>
+              <p class="mb-0">Failed to test connection. Please try again.</p>
+            </div>
+          </div>
+        </div>
+      `;
+      
+              if (window.FCMDashboard?.FCM?.ui?.showToast) {
+          window.FCMDashboard.FCM.ui.showToast('Failed to test connection', 'error');
+        }
+    });
+  }
+
+  /**
+   * Close test result row
+   */
+  function closeTestResult(accountId) {
+    const resultContainer = document.getElementById(`test-result-container-${accountId}`);
+    if (resultContainer) {
+      resultContainer.classList.add('d-none');
+    }
+  }
+
+  /**
+   * Initialize delete confirmation functionality
+   */
+  function initDeleteConfirmations() {
+    document.addEventListener('change', function(e) {
+      if (e.target.id && e.target.id.startsWith('confirmDelete')) {
+        const accountId = e.target.id.replace('confirmDelete', '');
+        const deleteButton = document.getElementById(`deleteButton${accountId}`);
+        if (deleteButton) {
+          deleteButton.disabled = !e.target.checked;
+        }
+      }
+    });
+
+    // Reset checkboxes when modals are hidden
+    document.addEventListener('hidden.bs.modal', function(e) {
+      if (e.target.id && e.target.id.startsWith('deleteModal')) {
+        const accountId = e.target.id.replace('deleteModal', '');
+        const checkbox = document.getElementById(`confirmDelete${accountId}`);
+        const deleteButton = document.getElementById(`deleteButton${accountId}`);
+        if (checkbox) checkbox.checked = false;
+        if (deleteButton) deleteButton.disabled = true;
+      }
+    });
+  }
+
+  /**
+   * Initialize form handlers
+   */
+  function initFormHandlers() {
+    // Add loading states to form submissions
+    document.addEventListener('submit', function(e) {
+      if (e.target.classList.contains('delete-form')) {
+        const submitButton = e.target.querySelector('button[type="submit"]');
+        if (submitButton && FCM.forms?.addLoadingState) {
+          FCM.forms.addLoadingState($(submitButton));
+        }
+      }
+    });
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // ESC key closes test results
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.test-result-container:not(.d-none)').forEach(container => {
+        container.classList.add('d-none');
+      });
+    }
+  });
+
+  // Helper function to get CSRF token
+  window.getCsrfToken = function() {
+    const csrfInput = document.querySelector('input[name="_csrf"]');
+    return csrfInput ? csrfInput.value : '';
+  };
+
+})();
+</script>
+
+<!-- Accounts Page Specific Dropdown Fixes -->
+<style>
+/* Accounts table specific dropdown positioning */
+#accounts-table .dropdown-menu {
+  position: absolute !important;
+  z-index: 9999 !important;
+  transform: none !important;
+}
+
+#accounts-table .btn-group {
+  position: relative;
+  z-index: 10;
+}
+
+#accounts-table tbody tr {
+  position: relative;
+}
+
+#accounts-table tbody tr td:last-child {
+  overflow: visible !important;
+  position: relative;
+  z-index: 5;
+}
+
+/* Ensure tooltips appear above everything */
+#accounts-table [data-bs-toggle="tooltip"] + .tooltip {
+  z-index: 10000 !important;
+}
+
+/* Fix for action button spacing and alignment */
+#accounts-table .btn-group .btn {
+  margin-right: 2px;
+}
+
+#accounts-table .btn-group .btn:last-child {
+  margin-right: 0;
+}
+
+/* Test result containers styling */
+.test-result-container {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

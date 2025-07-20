@@ -1,0 +1,72 @@
+<%- include('../partials/csrf') %>
+
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Edit Firebase Account</h5>
+        </div>
+        <div class="card-body">
+          <% if(typeof error_msg !== 'undefined' && error_msg && error_msg !== '') { %>
+            <div class="alert alert-danger" role="alert">
+              <%= error_msg %>
+            </div>
+          <% } %>
+          <% if(typeof success_msg !== 'undefined' && success_msg && success_msg !== '') { %>
+            <div class="alert alert-success" role="alert">
+              <%= success_msg %>
+            </div>
+          <% } %>
+          
+          <form action="/accounts/edit/<%= account.id %>" method="POST">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            
+            <div class="mb-3">
+              <label for="name" class="form-label">Account Name</label>
+              <input type="text" class="form-control" id="name" name="name" value="<%= account.name %>" required>
+              <div class="form-text">A friendly name to identify this Firebase account</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="projectId" class="form-label">Project ID</label>
+              <input type="text" class="form-control" id="projectId" name="projectId" value="<%= account.projectId %>" required>
+              <div class="form-text">Firebase project ID from your service account JSON</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="clientEmail" class="form-label">Client Email</label>
+              <input type="email" class="form-control" id="clientEmail" name="clientEmail" value="<%= account.clientEmail %>" required>
+              <div class="form-text">Firebase client email from your service account JSON</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="privateKey" class="form-label">Private Key</label>
+              <textarea class="form-control" id="privateKey" name="privateKey" rows="6" placeholder="Leave blank to keep current private key"></textarea>
+              <div class="form-text">Firebase private key from your service account JSON (including "-----BEGIN PRIVATE KEY-----" and "-----END PRIVATE KEY-----"). Leave blank to keep current key.</div>
+            </div>
+            
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="isDefault" name="isDefault" <%= account.isDefault ? 'checked' : '' %>>
+              <label class="form-check-label" for="isDefault">Set as default account</label>
+              <div class="form-text">If checked, this account will be used as the default for sending notifications</div>
+            </div>
+            
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="isActive" name="isActive" <%= account.isActive ? 'checked' : '' %>>
+              <label class="form-check-label" for="isActive">Active</label>
+              <div class="form-text">Uncheck to temporarily disable this account</div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="/accounts" class="btn btn-secondary me-md-2">Cancel</a>
+              <button type="submit" class="btn btn-primary">Update Account</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %> 

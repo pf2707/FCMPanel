@@ -1,0 +1,67 @@
+<!-- CSRF Token for Forms -->
+<% if(typeof csrfToken !== 'undefined') { %>
+<form id="csrf-form" method="POST" style="display:none">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+</form>
+<script>
+    // Function to help copy CSRF token to dynamically created forms
+    window.getCsrfToken = function() {
+        return document.querySelector('#csrf-form input[name="_csrf"]').value;
+    }
+    
+    // Add CSRF token to all ajax requests
+    document.addEventListener('DOMContentLoaded', function() {
+        // Store the original fetch
+        const originalFetch = window.fetch;
+        
+        // Override fetch to automatically include CSRF token
+        window.fetch = function(url, options = {}) {
+            // Only add for POST, PUT, DELETE, etc. (not GET)
+            if (options.method && options.method.toUpperCase() !== 'GET') {
+                // Get CSRF token
+                const token = window.getCsrfToken();
+                
+                // Initialize headers if needed
+                if (!options.headers) {
+                    options.headers = {};
+                }
+                
+                // Add CSRF token to header
+                if (token) {
+                    if (options.headers instanceof Headers) {
+                        options.headers.append('CSRF-Token', token);
+                    } else {
+                        options.headers['CSRF-Token'] = token;
+                    }
+                    
+                    // If it's JSON data, add the token to the body
+                    if (options.body && typeof options.body === 'string' && 
+                        options.headers['Content-Type'] === 'application/json') {
+                        try {
+                            const bodyData = JSON.parse(options.body);
+                            bodyData._csrf = token;
+                            options.body = JSON.stringify(bodyData);
+                        } catch(e) {
+                            console.error('Error adding CSRF token to request body:', e);
+                        }
+                    }
+                }
+            }
+            
+            // Call the original fetch
+            return originalFetch.call(this, url, options);
+        };
+        
+        // For jQuery ajax if it's used
+        if (window.jQuery) {
+            jQuery.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                        xhr.setRequestHeader('CSRF-Token', window.getCsrfToken());
+                    }
+                }
+            });
+        }
+    });
+</script>
+<% } %> 

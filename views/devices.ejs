@@ -1,0 +1,1085 @@
+<%- include('partials/csrf') %>
+<% 
+  // Set active tab for navigation highlighting
+  var activeTab = 'devices';
+%>
+
+<!-- Skip to main content -->
+<a href="#devices-content" class="skip-link">Skip to devices management</a>
+
+<div class="container-fluid" id="devices-content">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h2 mb-2">
+            <i class="fas fa-mobile-alt me-2" aria-hidden="true"></i>
+            Connected Devices
+          </h1>
+          <p class="lead text-muted mb-0">Monitor and manage your FCM-enabled devices</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#deviceInfoModal"
+                  aria-label="View device registration API information">
+            <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">API Info</span>
+          </button>
+          <button class="btn btn-primary" onclick="location.reload()" 
+                  aria-label="Refresh device list">
+            <i class="fas fa-sync-alt me-1" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Refresh</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Device Statistics -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-primary mb-1"><%= devices ? devices.length : 0 %></h3>
+              <p class="text-muted mb-0">Total Devices</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-mobile-alt fa-2x text-primary" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card active">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-success mb-1">
+                <%= devices ? devices.filter(d => d.isActive).length : 0 %>
+              </h3>
+              <p class="text-muted mb-0">Active Devices</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-success" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card inactive">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-danger mb-1">
+                <%= devices ? devices.filter(d => !d.isActive).length : 0 %>
+              </h3>
+              <p class="text-muted mb-0">Inactive Devices</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-times-circle fa-2x text-danger" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-info mb-1">
+                <% 
+                  const platforms = devices ? [...new Set(devices.map(d => d.platform))].length : 0;
+                %>
+                <%= platforms %>
+              </h3>
+              <p class="text-muted mb-0">Platforms</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-layer-group fa-2x text-info" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Device Management Section -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card" role="region" aria-labelledby="devices-table-title">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 id="devices-table-title" class="mb-0">
+            <i class="fas fa-list me-2" aria-hidden="true"></i>
+            Device List
+          </h5>
+          <div class="d-flex gap-2">
+            <!-- Platform Filter -->
+            <select class="form-select form-select-sm" id="platformFilter" 
+                    aria-label="Filter devices by platform" style="width: auto;">
+              <option value="">All Platforms</option>
+              <option value="android">Android</option>
+              <option value="ios">iOS</option>
+              <option value="web">Web</option>
+            </select>
+            <!-- Status Filter -->
+            <select class="form-select form-select-sm" id="statusFilter" 
+                    aria-label="Filter devices by status" style="width: auto;">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <% if (devices && devices.length > 0) { %>
+            <div class="table-container">
+              <table class="table table-hover data-table" id="devicesTable" 
+                     role="table" aria-label="Device management table">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <i class="fas fa-device me-1" aria-hidden="true"></i>
+                      Device
+                    </th>
+                    <th scope="col">
+                      <i class="fas fa-mobile-alt me-1" aria-hidden="true"></i>
+                      Platform
+                    </th>
+                    <th scope="col">
+                      <i class="fas fa-clock me-1" aria-hidden="true"></i>
+                      Last Seen
+                    </th>
+                    <th scope="col">
+                      <i class="fas fa-heartbeat me-1" aria-hidden="true"></i>
+                      Status
+                    </th>
+                    <th scope="col" class="text-center">
+                      <i class="fas fa-cogs me-1" aria-hidden="true"></i>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% devices.forEach(device => { %>
+                    <tr class="device-row" data-device-id="<%= device.id %>" 
+                        data-platform="<%= device.platform %>" 
+                        data-status="<%= device.isActive ? 'active' : 'inactive' %>">
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div class="device-avatar me-3">
+                            <% if (device.platform === 'android') { %>
+                              <i class="fab fa-android fa-lg text-success" aria-hidden="true"></i>
+                            <% } else if (device.platform === 'ios') { %>
+                              <i class="fab fa-apple fa-lg text-secondary" aria-hidden="true"></i>
+                            <% } else if (device.platform === 'web') { %>
+                              <i class="fab fa-chrome fa-lg text-primary" aria-hidden="true"></i>
+                            <% } else { %>
+                              <i class="fas fa-question-circle fa-lg text-muted" aria-hidden="true"></i>
+                            <% } %>
+                          </div>
+                          <div>
+                            <div class="fw-medium">
+                              <%= device.name || 'Unknown Device' %>
+                            </div>
+                            <small class="text-muted d-block">
+                              <i class="fas fa-fingerprint me-1" aria-hidden="true"></i>
+                              <%= device.id.length > 20 ? device.id.substring(0, 20) + '...' : device.id %>
+                            </small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <% if (device.platform === 'android') { %>
+                          <span class="badge bg-success" aria-label="Android device">
+                            <i class="fab fa-android me-1" aria-hidden="true"></i> Android
+                          </span>
+                        <% } else if (device.platform === 'ios') { %>
+                          <span class="badge bg-secondary" aria-label="iOS device">
+                            <i class="fab fa-apple me-1" aria-hidden="true"></i> iOS
+                          </span>
+                        <% } else if (device.platform === 'web') { %>
+                          <span class="badge bg-primary" aria-label="Web device">
+                            <i class="fab fa-chrome me-1" aria-hidden="true"></i> Web
+                          </span>
+                        <% } else { %>
+                          <span class="badge bg-info" aria-label="Unknown platform">
+                            <i class="fas fa-question-circle me-1" aria-hidden="true"></i> 
+                            <%= device.platform || 'Unknown' %>
+                          </span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <span data-bs-toggle="tooltip" 
+                              title="<%= new Date(device.lastSeen).toLocaleString() %>"
+                              aria-label="Last seen: <%= new Date(device.lastSeen).toLocaleString() %>">
+                          <%= new Date(device.lastSeen).toLocaleDateString() %>
+                        </span>
+                        <small class="text-muted d-block">
+                          <%= new Date(device.lastSeen).toLocaleTimeString() %>
+                        </small>
+                      </td>
+                      <td>
+                        <% if (device.isActive) { %>
+                          <span class="badge bg-success" aria-label="Device is active">
+                            <i class="fas fa-check-circle me-1" aria-hidden="true"></i>
+                            Active
+                          </span>
+                        <% } else { %>
+                          <span class="badge bg-danger" aria-label="Device is inactive">
+                            <i class="fas fa-times-circle me-1" aria-hidden="true"></i>
+                            Inactive
+                          </span>
+                        <% } %>
+                      </td>
+                      <td class="text-center">
+                        <div class="btn-group" role="group" aria-label="Device actions for <%= device.name || 'Unknown Device' %>">
+                          <button class="btn btn-sm btn-info toggle-device-details" 
+                                  data-device-id="<%= device.id %>"
+                                  data-bs-toggle="tooltip" 
+                                  title="View device details"
+                                  aria-label="View details for device <%= device.name || 'Unknown Device' %>"
+                                  aria-expanded="false">
+                            <i class="fas fa-info-circle" aria-hidden="true"></i>
+                          </button>
+                          <form action="/devices/<%= device.id %>/test" method="POST" class="d-inline">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" class="btn btn-sm btn-primary test-device-btn" 
+                                    data-device-id="<%= device.id %>"
+                                    data-bs-toggle="tooltip" 
+                                    title="Send test notification"
+                                    aria-label="Send test notification to <%= device.name || 'Unknown Device' %>">
+                              <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                            </button>
+                          </form>
+                          <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                    type="button" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false"
+                                    aria-label="More actions for device <%= device.name || 'Unknown Device' %>">
+                              <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                              <li>
+                                <button class="dropdown-item copy-token-btn" 
+                                        data-token="<%= device.token %>"
+                                        aria-label="Copy FCM token to clipboard">
+                                  <i class="fas fa-copy me-2" aria-hidden="true"></i>
+                                  Copy Token
+                                </button>
+                              </li>
+                              <% if (device.isActive) { %>
+                              <li>
+                                <form action="/devices/<%= device.id %>/inactive" method="POST" class="d-inline">
+                                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                  <button type="submit" class="dropdown-item text-warning" 
+                                          onclick="return confirm('Are you sure you want to deactivate this device?')"
+                                          aria-label="Deactivate device <%= device.name || 'Unknown Device' %>">
+                                    <i class="fas fa-power-off me-2" aria-hidden="true"></i>
+                                    Deactivate
+                                  </button>
+                                </form>
+                              </li>
+                              <% } %>
+                              <li><hr class="dropdown-divider"></li>
+                              <li>
+                                <form action="/devices/<%= device.id %>/delete" method="POST" class="d-inline">
+                                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                  <button type="submit" class="dropdown-item text-danger" 
+                                          onclick="return confirm('Are you sure you want to permanently delete this device? This action cannot be undone.')"
+                                          aria-label="Delete device <%= device.name || 'Unknown Device' %>">
+                                    <i class="fas fa-trash me-2" aria-hidden="true"></i>
+                                    Delete Device
+                                  </button>
+                                </form>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    <!-- Device Details Row (Initially Hidden) -->
+                    <tr class="device-details d-none" id="device-details-<%= device.id %>" 
+                        role="region" aria-labelledby="details-title-<%= device.id %>">
+                      <td colspan="5">
+                        <div class="card border-0 bg-transparent">
+                          <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                              <h6 id="details-title-<%= device.id %>" class="text-muted text-uppercase mb-0">
+                                <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                                Device Details
+                              </h6>
+                              <button type="button" class="btn btn-sm btn-outline-secondary close-details"
+                                      aria-label="Close device details">
+                                <i class="fas fa-times me-1" aria-hidden="true"></i>
+                                Close
+                              </button>
+                            </div>
+                            
+                            <div class="row">
+                              <div class="col-lg-6 mb-3">
+                                <div class="card">
+                                  <div class="card-header py-2">
+                                    <h6 class="mb-0">
+                                      <i class="fas fa-mobile-alt me-1" aria-hidden="true"></i>
+                                      Device Information
+                                    </h6>
+                                  </div>
+                                  <div class="card-body">
+                                    <dl class="row mb-0">
+                                      <dt class="col-sm-4">ID:</dt>
+                                      <dd class="col-sm-8">
+                                        <code class="small"><%= device.id %></code>
+                                      </dd>
+                                      
+                                      <dt class="col-sm-4">Name:</dt>
+                                      <dd class="col-sm-8"><%= device.name || 'Unknown' %></dd>
+                                      
+                                      <dt class="col-sm-4">Platform:</dt>
+                                      <dd class="col-sm-8">
+                                        <% if (device.platform === 'android') { %>
+                                          <i class="fab fa-android text-success me-1" aria-hidden="true"></i> Android
+                                        <% } else if (device.platform === 'ios') { %>
+                                          <i class="fab fa-apple text-secondary me-1" aria-hidden="true"></i> iOS
+                                        <% } else if (device.platform === 'web') { %>
+                                          <i class="fab fa-chrome text-primary me-1" aria-hidden="true"></i> Web
+                                        <% } else { %>
+                                          <i class="fas fa-question-circle text-muted me-1" aria-hidden="true"></i> <%= device.platform || 'Unknown' %>
+                                        <% } %>
+                                      </dd>
+                                      
+                                      <dt class="col-sm-4">Last Seen:</dt>
+                                      <dd class="col-sm-8">
+                                        <%= new Date(device.lastSeen).toLocaleString() %>
+                                      </dd>
+                                      
+                                      <dt class="col-sm-4">Status:</dt>
+                                      <dd class="col-sm-8">
+                                        <% if (device.isActive) { %>
+                                          <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1" aria-hidden="true"></i>
+                                            Active
+                                          </span>
+                                        <% } else { %>
+                                          <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle me-1" aria-hidden="true"></i>
+                                            Inactive
+                                          </span>
+                                        <% } %>
+                                      </dd>
+                                      
+                                      <dt class="col-sm-4">Registered:</dt>
+                                      <dd class="col-sm-8">
+                                        <%= device.createdAt ? new Date(device.createdAt).toLocaleDateString() : 'Unknown' %>
+                                      </dd>
+                                    </dl>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div class="col-lg-6 mb-3">
+                                <div class="card">
+                                  <div class="card-header py-2">
+                                    <h6 class="mb-0">
+                                      <i class="fas fa-key me-1" aria-hidden="true"></i>
+                                      FCM Token
+                                    </h6>
+                                  </div>
+                                  <div class="card-body">
+                                    <div class="input-group mb-3">
+                                      <input type="text" 
+                                             class="form-control form-control-sm" 
+                                             value="<%= device.token %>" 
+                                             readonly
+                                             aria-label="FCM Token for <%= device.name || 'Unknown Device' %>">
+                                      <button class="btn btn-outline-secondary copy-token-btn" 
+                                              type="button" 
+                                              data-token="<%= device.token %>"
+                                              data-bs-toggle="tooltip" 
+                                              title="Copy token to clipboard"
+                                              aria-label="Copy FCM token to clipboard">
+                                        <i class="fas fa-copy" aria-hidden="true"></i>
+                                      </button>
+                                    </div>
+                                    
+                                    <h6 class="text-muted text-uppercase mb-2">
+                                      <i class="fas fa-tags me-1" aria-hidden="true"></i>
+                                      Metadata
+                                    </h6>
+                                    <% if (device.metadata && Object.keys(device.metadata).length > 0) { %>
+                                      <div class="bg-dark p-2 rounded">
+                                        <pre class="mb-0 small text-light" 
+                                             style="max-height: 150px; overflow-y: auto;"
+                                             aria-label="Device metadata"><%= JSON.stringify(device.metadata, null, 2) %></pre>
+                                      </div>
+                                    <% } else { %>
+                                      <p class="text-muted mb-0">
+                                        <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                                        No metadata available
+                                      </p>
+                                    <% } %>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <!-- Device Actions -->
+                            <div class="d-flex justify-content-end gap-2 mt-3">
+                              <form action="/devices/<%= device.id %>/test" method="POST" class="d-inline">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit" class="btn btn-primary test-device-btn" 
+                                        data-device-id="<%= device.id %>"
+                                        aria-label="Send test notification to this device">
+                                  <i class="fas fa-paper-plane me-1" aria-hidden="true"></i>
+                                  Send Test Notification
+                                </button>
+                              </form>
+                              <button type="button" class="btn btn-outline-secondary close-details"
+                                      aria-label="Close device details">
+                                <i class="fas fa-times me-1" aria-hidden="true"></i>
+                                Close
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="text-center py-5">
+              <i class="fas fa-mobile-alt fa-4x text-muted mb-3" aria-hidden="true"></i>
+              <h5 class="text-muted mb-3">No Devices Registered</h5>
+              <p class="text-muted mb-4">
+                Get started by registering your first device using our API
+              </p>
+              <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#deviceInfoModal"
+                      aria-label="View device registration instructions">
+                <i class="fas fa-plus me-1" aria-hidden="true"></i>
+                View Registration Guide
+              </button>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced Device API Information Modal -->
+<div class="modal fade" id="deviceInfoModal" tabindex="-1" 
+     aria-labelledby="deviceInfoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deviceInfoModalLabel">
+          <i class="fas fa-code me-2" aria-hidden="true"></i>
+          Device Registration API
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" 
+                aria-label="Close API documentation"></button>
+      </div>
+      <div class="modal-body">
+        <!-- API Endpoint -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0">
+              <i class="fas fa-link me-1" aria-hidden="true"></i>
+              API Endpoint
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="input-group">
+              <span class="input-group-text bg-success text-white">POST</span>
+              <input type="text" class="form-control" value="<%= baseUrl %>/api/devices/register" readonly
+                     aria-label="API endpoint URL">
+              <button class="btn btn-outline-secondary" type="button" 
+                      data-clipboard-target="#endpoint-url"
+                      aria-label="Copy endpoint URL">
+                <i class="fas fa-copy" aria-hidden="true"></i>
+              </button>
+            </div>
+            <input type="hidden" id="endpoint-url" value="<%= baseUrl %>/api/devices/register">
+          </div>
+        </div>
+
+        <!-- Authentication -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0">
+              <i class="fas fa-shield-alt me-1" aria-hidden="true"></i>
+              Authentication
+            </h6>
+          </div>
+          <div class="card-body">
+            <pre class="bg-dark text-light p-3 rounded mb-0"><code>// Header Authentication
+headers: {
+  'x-api-key': 'your_api_key'
+}
+
+// OR Query Parameter
+<%= baseUrl %>/api/devices/register?api_key=your_api_key</code></pre>
+            <div class="alert alert-warning mt-3 mb-0">
+              <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+              <strong>Note:</strong> Set your API key in the <code>DEVICE_REGISTRATION_API_KEY</code> environment variable.
+            </div>
+          </div>
+        </div>
+
+        <!-- Request/Response Examples -->
+        <div class="row">
+          <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-upload me-1" aria-hidden="true"></i>
+                  Request Body
+                </h6>
+              </div>
+              <div class="card-body">
+                <pre class="bg-dark text-light p-3 rounded mb-0 small" style="font-size: 0.8rem;"><code>{
+  "id": "device-unique-id",     // Optional
+  "name": "User's Device",      // Optional
+  "platform": "android",       // Required: android|ios|web
+  "token": "fcm-token",         // Required (min 32 chars)
+  "topic": "topic-name",        // Optional (default: "all")
+  "metadata": {                 // Optional
+    "appVersion": "1.0.0",
+    "osVersion": "11.0",
+    "deviceModel": "Pixel 6"
+  }
+}</code></pre>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-download me-1" aria-hidden="true"></i>
+                  Success Response
+                </h6>
+              </div>
+              <div class="card-body">
+                <pre class="bg-dark text-light p-3 rounded mb-0 small" style="font-size: 0.8rem;"><code>{
+  "success": true,
+  "message": "Device registered successfully",
+  "device": {
+    "id": "device-id",
+    "name": "User Device",
+    "platform": "android",
+    "lastSeen": "2023-08-15T12:34:56.789Z"
+  },
+  "subscription": {
+    "topic": "topic-name"
+  }
+}</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Code Examples -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0">
+              <i class="fas fa-code me-1" aria-hidden="true"></i>
+              Implementation Examples
+            </h6>
+          </div>
+          <div class="card-body">
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#js-example" 
+                        type="button" role="tab" aria-controls="js-example" aria-selected="true">
+                  JavaScript
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#curl-example" 
+                        type="button" role="tab" aria-controls="curl-example" aria-selected="false">
+                  cURL
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#python-example" 
+                        type="button" role="tab" aria-controls="python-example" aria-selected="false">
+                  Python
+                </button>
+              </li>
+            </ul>
+            
+            <!-- Tab Content -->
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="js-example" role="tabpanel">
+                <pre class="bg-dark text-light p-3 rounded mb-0 small" style="font-size: 0.8rem;"><code>// JavaScript Example
+async function registerDevice(fcmToken) {
+  try {
+    const response = await fetch('<%= baseUrl %>/api/devices/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': 'your_api_key'
+      },
+      body: JSON.stringify({
+        name: 'User Device',
+        platform: 'web',
+        token: fcmToken,
+        topic: 'customer-updates',
+        metadata: {
+          appVersion: '1.0.0',
+          userAgent: navigator.userAgent
+        }
+      })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      
+    } else {
+      console.error('Registration failed:', data.message);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}</code></pre>
+              </div>
+              
+              <div class="tab-pane fade" id="curl-example" role="tabpanel">
+                <pre class="bg-dark text-light p-3 rounded mb-0 small" style="font-size: 0.8rem;"><code># cURL Example
+curl -X POST "<%= baseUrl %>/api/devices/register" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your_api_key" \
+  -d '{
+    "name": "User Device",
+    "platform": "android",
+    "token": "fcm_token_here",
+    "topic": "customer-updates"
+  }'</code></pre>
+              </div>
+              
+              <div class="tab-pane fade" id="python-example" role="tabpanel">
+                <pre class="bg-dark text-light p-3 rounded mb-0 small" style="font-size: 0.8rem;"><code># Python Example
+import requests
+import json
+
+def register_device(fcm_token, api_key):
+    url = "<%= baseUrl %>/api/devices/register"
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": api_key
+    }
+    data = {
+        "name": "User Device",
+        "platform": "android",
+        "token": fcm_token,
+        "topic": "customer-updates"
+    }
+    
+    response = requests.post(url, headers=headers, json=data)
+    return response.json()</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rate Limiting Info -->
+        <div class="alert alert-info">
+          <h6 class="alert-heading">
+            <i class="fas fa-tachometer-alt me-2" aria-hidden="true"></i>
+            Rate Limiting
+          </h6>
+          <p class="mb-0">
+            The API is rate-limited to <strong>100 requests per 15 minutes</strong> per IP address to prevent abuse.
+            Response headers include rate limit information.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1" aria-hidden="true"></i>
+          Close
+        </button>
+        <button type="button" class="btn btn-primary" onclick="window.open('/docs', '_blank')"
+                aria-label="Open full API documentation">
+          <i class="fas fa-book me-1" aria-hidden="true"></i>
+          Full Documentation
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Device Page Specific Dropdown Fixes -->
+<style>
+/* Device table styling only */
+
+/* Fix for action button spacing and alignment */
+#devicesTable .btn-group .btn {
+  margin-right: 2px;
+}
+
+#devicesTable .btn-group .btn:last-child {
+  margin-right: 0;
+}
+</style>
+
+
+<!-- Enhanced JavaScript with FCM Dashboard Integration -->
+<script>
+(function() {
+'use strict';
+
+  // Integration with FCM Dashboard
+  const FCM = window.FCMDashboard?.FCM || {};
+
+  // Device page state
+  let deviceDetailsOpen = new Set();
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    initDevicePage();
+  });
+
+  /**
+   * Initialize device page functionality
+   */
+  function initDevicePage() {
+    initDeviceTable();
+    initDeviceFilters();
+    initDeviceActions();
+    initCopyTokens();
+    
+            // Integrate with FCM tooltips if available
+        if (FCM.ui?.initTooltips) {
+          FCM.ui.initTooltips();
+        }
+        
+
+    
+    // Initialize clipboard functionality
+    if (FCM.clipboard?.init) {
+      FCM.clipboard.init();
+    }
+    
+    // Disable global device toggle handlers to prevent conflicts
+    if (window.FCMDashboard?.FCM?.devices?.initToggleDetails) {
+      // Override to prevent conflicts with page-specific implementation
+      window.FCMDashboard.FCM.devices.initToggleDetails = function() {
+
+      };
+    }
+  }
+
+
+
+  /**
+   * Initialize device table with DataTables
+   */
+  function initDeviceTable() {
+    const $table = $('#devicesTable');
+    if (!$table.length || !window.FCMDashboard?.FCM?.dataTables?.safeInit) return;
+    
+    // Store detail rows before DataTable initialization
+    const detailRows = [];
+    $table.find('tr.device-details').each(function() {
+      const $row = $(this);
+      detailRows.push({
+        element: $row.clone(true),
+        deviceId: $row.attr('id').replace('device-details-', '')
+      });
+      $row.remove();
+    });
+    
+    const options = {
+      order: [[2, 'desc']], // Sort by last seen
+      language: {
+        emptyTable: 'No devices found',
+        zeroRecords: 'No devices match your search'
+      },
+      drawCallback: function() {
+        insertDetailRows(detailRows);
+      }
+    };
+    
+    window.FCMDashboard.FCM.dataTables.safeInit('#devicesTable', options);
+    
+    // Helper function to insert detail rows
+    function insertDetailRows(detailRowsArray) {
+      $table.find('tr.device-details').remove();
+      detailRowsArray.forEach(function(detailData) {
+        const deviceRow = $table.find(`tr[data-device-id="${detailData.deviceId}"]`);
+        if (deviceRow.length) {
+          deviceRow.after(detailData.element.clone(true));
+        }
+      });
+    }
+  }
+
+  /**
+   * Initialize device filters
+   */
+  function initDeviceFilters() {
+    const platformFilter = document.getElementById('platformFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (platformFilter) {
+      platformFilter.addEventListener('change', filterDevices);
+    }
+    
+    if (statusFilter) {
+      statusFilter.addEventListener('change', filterDevices);
+    }
+  }
+
+  /**
+   * Filter devices based on platform and status
+   */
+  function filterDevices() {
+    const platformFilter = document.getElementById('platformFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('.device-row');
+    
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+      const platform = row.dataset.platform;
+      const status = row.dataset.status;
+      const detailsRow = document.getElementById(`device-details-${row.dataset.deviceId}`);
+      
+      let showRow = true;
+      
+      if (platformFilter && platform !== platformFilter) {
+        showRow = false;
+      }
+      
+      if (statusFilter && status !== statusFilter) {
+        showRow = false;
+      }
+      
+      if (showRow) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+        // Hide details if row is hidden
+        if (detailsRow) {
+          detailsRow.style.display = 'none';
+        }
+      }
+    });
+    
+    // Announce filter results
+    if (FCM.accessibility?.announce) {
+      FCM.accessibility.announce(`${visibleCount} devices match the current filters`);
+    }
+  }
+
+  /**
+
+
+  /**
+   * Initialize device actions
+   */
+  function initDeviceActions() {
+    // Toggle device details
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.toggle-device-details')) {
+        e.preventDefault();
+        const button = e.target.closest('.toggle-device-details');
+        const deviceId = button.dataset.deviceId;
+        toggleDeviceDetails(deviceId, button);
+      }
+      
+      if (e.target.closest('.close-details')) {
+        e.preventDefault();
+        const detailsRow = e.target.closest('.device-details');
+        const deviceId = detailsRow.id.replace('device-details-', '');
+        closeDeviceDetails(deviceId);
+      }
+    });
+
+    // Test notification handlers
+    document.addEventListener('submit', function(e) {
+      if (e.target.querySelector('.test-device-btn')) {
+        const button = e.target.querySelector('.test-device-btn');
+        const deviceId = button.dataset.deviceId;
+        handleTestNotification(button, deviceId);
+      }
+    });
+  }
+
+  /**
+   * Toggle device details visibility
+   */
+  function toggleDeviceDetails(deviceId, button) {
+    const detailsRow = document.getElementById(`device-details-${deviceId}`);
+    if (!detailsRow) return;
+
+    const isOpen = !detailsRow.classList.contains('d-none');
+    
+    if (isOpen) {
+      closeDeviceDetails(deviceId);
+    } else {
+      // Close other open details first
+      deviceDetailsOpen.forEach(id => {
+        if (id !== deviceId) {
+          closeDeviceDetails(id);
+        }
+      });
+      
+      // Open this details
+      detailsRow.classList.remove('d-none');
+      deviceDetailsOpen.add(deviceId);
+      
+      // Update button state
+      button.classList.remove('btn-info');
+      button.classList.add('btn-warning');
+      button.setAttribute('aria-expanded', 'true');
+      
+      // Scroll to details
+      detailsRow.scrollIntoView({ 
+        behavior: FCM.state?.reducedMotion ? 'auto' : 'smooth',
+        block: 'nearest' 
+      });
+      
+      // Announce to screen readers
+      if (FCM.accessibility?.announce) {
+        FCM.accessibility.announce('Device details opened');
+      }
+    }
+  }
+
+  /**
+   * Close device details
+   */
+  function closeDeviceDetails(deviceId) {
+    const detailsRow = document.getElementById(`device-details-${deviceId}`);
+    const button = document.querySelector(`.toggle-device-details[data-device-id="${deviceId}"]`);
+    
+    if (detailsRow) {
+      detailsRow.classList.add('d-none');
+      deviceDetailsOpen.delete(deviceId);
+    }
+    
+    if (button) {
+      button.classList.remove('btn-warning');
+      button.classList.add('btn-info');
+      button.setAttribute('aria-expanded', 'false');
+    }
+    
+    // Announce to screen readers
+    if (FCM.accessibility?.announce) {
+      FCM.accessibility.announce('Device details closed');
+    }
+  }
+
+  /**
+   * Handle test notification
+   */
+  function handleTestNotification(button, deviceId) {
+    if (FCM.forms?.addLoadingState) {
+      FCM.forms.addLoadingState($(button));
+    } else {
+      // Fallback loading state
+      button.disabled = true;
+      const originalHtml = button.innerHTML;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
+      
+      setTimeout(() => {
+        button.disabled = false;
+        button.innerHTML = originalHtml;
+      }, 3000);
+    }
+  }
+
+  /**
+   * Initialize copy token functionality
+   */
+  function initCopyTokens() {
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.copy-token-btn')) {
+        e.preventDefault();
+        const button = e.target.closest('.copy-token-btn');
+        const token = button.dataset.token;
+        
+        if (token) {
+          copyToClipboard(token, button);
+        }
+      }
+    });
+  }
+
+  /**
+   * Copy text to clipboard with enhanced feedback
+   */
+  async function copyToClipboard(text, button) {
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      
+      // Visual feedback
+      const originalHtml = button.innerHTML;
+      button.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
+      button.classList.add('btn-success');
+      button.classList.remove('btn-outline-secondary');
+      
+      // Announce to screen readers
+      if (FCM.accessibility?.announce) {
+        FCM.accessibility.announce('Token copied to clipboard');
+      }
+      
+      // Show toast if available
+      if (FCM.ui?.showToast) {
+        FCM.ui.showToast('Token copied to clipboard!', 'success', 2000);
+      }
+      
+      setTimeout(() => {
+        button.innerHTML = originalHtml;
+        button.classList.remove('btn-success');
+        button.classList.add('btn-outline-secondary');
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Copy failed:', err);
+      
+      if (FCM.ui?.showToast) {
+        FCM.ui.showToast('Failed to copy token', 'error');
+      }
+    }
+  }
+
+  // Keyboard navigation enhancements
+  document.addEventListener('keydown', function(e) {
+    // ESC key closes device details
+    if (e.key === 'Escape') {
+      deviceDetailsOpen.forEach(deviceId => {
+        closeDeviceDetails(deviceId);
+      });
+    }
+  });
+
+  // Expose functions for legacy compatibility
+  window.copyToClipboard = copyToClipboard;
+  window.toggleDeviceDetails = toggleDeviceDetails;
+
+})();
+</script> 

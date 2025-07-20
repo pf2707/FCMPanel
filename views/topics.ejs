@@ -1,0 +1,1130 @@
+<%- include('partials/csrf') %>
+<% 
+  // Set active tab for navigation highlighting
+  var activeTab = 'topics';
+%>
+
+<!-- Skip to main content -->
+<a href="#topics-content" class="skip-link">Skip to topics management</a>
+
+<div class="container-fluid" id="topics-content">
+  <!-- Page Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h2 mb-2">
+            <i class="fas fa-tags me-2" aria-hidden="true"></i>
+            Topic Management
+          </h1>
+          <p class="lead text-muted mb-0">Create and manage FCM topics for targeted messaging</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" onclick="location.reload()" 
+                  aria-label="Refresh topics">
+            <i class="fas fa-sync-alt me-1" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Refresh</span>
+          </button>
+          <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#topicsHelpModal"
+                  aria-label="View topics help">
+            <i class="fas fa-question-circle me-1" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Help</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Topic Statistics -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-primary mb-1"><%= topics ? topics.length : 0 %></h3>
+              <p class="text-muted mb-0">Total Topics</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-tags fa-2x text-primary" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card active">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-success mb-1">
+                <%= subscriptions ? subscriptions.filter(s => s.isActive).length : 0 %>
+              </h3>
+              <p class="text-muted mb-0">Active Subscriptions</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-success" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-info mb-1">
+                <%= subscriptions ? subscriptions.length : 0 %>
+              </h3>
+              <p class="text-muted mb-0">Total Subscriptions</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-info" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card stats-card">
+        <div class="card-body text-center">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="text-warning mb-1">
+                <% 
+                  const uniqueDevices = subscriptions ? [...new Set(subscriptions.map(s => s.deviceToken))].length : 0;
+                %>
+                <%= uniqueDevices %>
+              </h3>
+              <p class="text-muted mb-0">Subscribed Devices</p>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-mobile-alt fa-2x text-warning" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Topics Management -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card" role="region" aria-labelledby="topics-management-title">
+        <div class="card-header">
+          <h5 id="topics-management-title" class="mb-0">
+            <i class="fas fa-cogs me-2" aria-hidden="true"></i>
+            Topics Management
+          </h5>
+        </div>
+        <div class="card-body">
+          <!-- Enhanced Tabs -->
+          <ul class="nav nav-tabs nav-fill mb-4" id="topicsTabs" role="tablist" aria-label="Topic management tabs">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" 
+                      type="button" role="tab" aria-controls="create" aria-selected="true"
+                      aria-label="Create new topic">
+                <i class="fas fa-plus me-1" aria-hidden="true"></i>
+                <span>Create Topic</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="send-tab" data-bs-toggle="tab" data-bs-target="#send" 
+                      type="button" role="tab" aria-controls="send" aria-selected="false"
+                      aria-label="Send notification to topic">
+                <i class="fas fa-paper-plane me-1" aria-hidden="true"></i>
+                <span>Send to Topic</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="subscribe-tab" data-bs-toggle="tab" data-bs-target="#subscribe" 
+                      type="button" role="tab" aria-controls="subscribe" aria-selected="false"
+                      aria-label="Subscribe devices to topic">
+                <i class="fas fa-user-plus me-1" aria-hidden="true"></i>
+                <span>Subscribe</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="unsubscribe-tab" data-bs-toggle="tab" data-bs-target="#unsubscribe" 
+                      type="button" role="tab" aria-controls="unsubscribe" aria-selected="false"
+                      aria-label="Unsubscribe devices from topic">
+                <i class="fas fa-user-minus me-1" aria-hidden="true"></i>
+                <span>Unsubscribe</span>
+              </button>
+            </li>
+          </ul>
+          
+          <!-- Tab Content -->
+          <div class="tab-content" id="topicsTabsContent">
+            <!-- Create Topic Tab -->
+            <div class="tab-pane fade show active" id="create" role="tabpanel" aria-labelledby="create-tab">
+              <div class="row">
+                <div class="col-lg-6">
+                  <h6 class="text-muted text-uppercase mb-3">
+                    <i class="fas fa-plus-circle me-1" aria-hidden="true"></i>
+                    Create New Topic
+                  </h6>
+                  <form action="/topics/create" method="POST" id="create-topic-form" 
+                        data-needs-validation novalidate role="form" aria-label="Create topic form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    
+                    <div class="mb-3">
+                      <label for="topicName" class="form-label">
+                        Topic Name
+                        <span class="text-danger" aria-label="required">*</span>
+                      </label>
+                      <input type="text" 
+                             class="form-control" 
+                             id="topicName" 
+                             name="topicName" 
+                             required
+                             pattern="^[a-zA-Z0-9_-]+$"
+                             maxlength="50"
+                             placeholder="my-topic-name"
+                             aria-describedby="topic-name-help">
+                      <div id="topic-name-help" class="form-text">
+                        <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                        Only letters, numbers, underscores, and hyphens allowed (2-50 characters)
+                      </div>
+                      <div class="invalid-feedback" role="alert"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="topicDescription" class="form-label">
+                        Description (optional)
+                      </label>
+                      <textarea class="form-control" 
+                                id="topicDescription" 
+                                name="topicDescription" 
+                                rows="2"
+                                maxlength="200"
+                                placeholder="Brief description of this topic..."
+                                aria-describedby="topic-description-help"></textarea>
+                      <div id="topic-description-help" class="form-text">
+                        <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                        Optional description to help identify the topic's purpose
+                      </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                      <button type="submit" class="btn btn-primary" id="createTopicBtn"
+                              aria-label="Create new topic">
+                        <i class="fas fa-plus me-1" aria-hidden="true"></i>
+                        Create Topic
+                      </button>
+                    </div>
+                  </form>
+                </div>
+                
+                <div class="col-lg-6">
+                  <h6 class="text-muted text-uppercase mb-3">
+                    <i class="fas fa-list me-1" aria-hidden="true"></i>
+                    Available Topics (<%= topics ? topics.length : 0 %>)
+                  </h6>
+                  <% if (topics && topics.length > 0) { %>
+                    <div class="list-group" role="list" aria-label="Available topics">
+                      <% topics.forEach((topic, index) => { %>
+                        <div class="list-group-item d-flex justify-content-between align-items-center" role="listitem">
+                          <div>
+                            <h6 class="mb-1">
+                              <i class="fas fa-tag me-1 text-primary" aria-hidden="true"></i>
+                              <%= topic %>
+                            </h6>
+                            <small class="text-muted">
+                              Topic #<%= index + 1 %> • 
+                              <%= subscriptions.filter(s => s.topic === topic).length %> subscribers
+                            </small>
+                          </div>
+                          <div class="d-flex gap-1">
+                            <span class="badge bg-primary">Active</span>
+                            <button class="btn btn-sm btn-outline-danger" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deleteTopicModal"
+                                    data-topic="<%= topic %>"
+                                    aria-label="Delete topic <%= topic %>">
+                              <i class="fas fa-trash" aria-hidden="true"></i>
+                            </button>
+                          </div>
+                        </div>
+                      <% }) %>
+                    </div>
+                  <% } else { %>
+                    <div class="text-center py-4">
+                      <i class="fas fa-tags fa-3x text-muted mb-3" aria-hidden="true"></i>
+                      <h6 class="text-muted">No Topics Created</h6>
+                      <p class="text-muted small">Create your first topic to start organizing notifications</p>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Send to Topic Tab -->
+            <div class="tab-pane fade" id="send" role="tabpanel" aria-labelledby="send-tab">
+              <h6 class="text-muted text-uppercase mb-3">
+                <i class="fas fa-paper-plane me-1" aria-hidden="true"></i>
+                Send Notification to Topic
+              </h6>
+              <form action="/topics/send-notification" method="POST" id="send-topic-form"
+                    data-needs-validation novalidate role="form" aria-label="Send to topic form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                
+                <div class="row">
+                  <div class="col-lg-6 mb-3">
+                    <label for="sendTopic" class="form-label">
+                      Select Topic
+                      <span class="text-danger" aria-label="required">*</span>
+                    </label>
+                    <select class="form-select" id="sendTopic" name="topic" required
+                            aria-describedby="send-topic-help">
+                      <option value="" selected disabled>Choose a topic...</option>
+                      <% if (topics && topics.length > 0) { %>
+                        <% topics.forEach(topic => { %>
+                          <option value="<%= topic %>">
+                            <%= topic %> (<%= subscriptions.filter(s => s.topic === topic).length %> subscribers)
+                          </option>
+                        <% }) %>
+                      <% } %>
+                    </select>
+                    <div id="send-topic-help" class="form-text">
+                      <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                      Select which topic to send the notification to
+                    </div>
+                    <div class="invalid-feedback" role="alert"></div>
+                  </div>
+                  
+                  <div class="col-lg-6 mb-3">
+                    <label for="sendTitle" class="form-label">
+                      Notification Title
+                      <span class="text-danger" aria-label="required">*</span>
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="sendTitle" 
+                           name="title" 
+                           required
+                           maxlength="100"
+                           placeholder="Enter notification title..."
+                           aria-describedby="send-title-help">
+                    <div id="send-title-help" class="form-text">
+                      <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                      Keep it concise and engaging (max 100 characters)
+                    </div>
+                    <div class="invalid-feedback" role="alert"></div>
+                  </div>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="sendBody" class="form-label">
+                    Notification Message
+                    <span class="text-danger" aria-label="required">*</span>
+                  </label>
+                  <textarea class="form-control" 
+                            id="sendBody" 
+                            name="body" 
+                            rows="3" 
+                            required
+                            maxlength="500"
+                            placeholder="Enter your notification message..."
+                            aria-describedby="send-body-help"></textarea>
+                  <div id="send-body-help" class="form-text">
+                    <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                    The main content of your notification (max 500 characters)
+                  </div>
+                  <div class="invalid-feedback" role="alert"></div>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="sendImageUrl" class="form-label">
+                    Image URL (optional)
+                  </label>
+                  <input type="url" 
+                         class="form-control" 
+                         id="sendImageUrl" 
+                         name="imageUrl" 
+                         placeholder="https://example.com/image.jpg"
+                         aria-describedby="send-image-help">
+                  <div id="send-image-help" class="form-text">
+                    <i class="fas fa-image me-1" aria-hidden="true"></i>
+                    URL to an image that will be displayed in the notification
+                  </div>
+                  <div class="invalid-feedback" role="alert"></div>
+                </div>
+                
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary" id="sendTopicBtn"
+                          <%= !topics || topics.length === 0 ? 'disabled' : '' %>
+                          aria-label="Send notification to selected topic">
+                    <i class="fas fa-paper-plane me-1" aria-hidden="true"></i>
+                    Send to Topic
+                  </button>
+                </div>
+                
+                <% if (!topics || topics.length === 0) { %>
+                <div class="alert alert-warning mt-3" role="alert">
+                  <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+                  You need to create at least one topic before sending notifications.
+                </div>
+                <% } %>
+              </form>
+            </div>
+            
+            <!-- Subscribe Devices Tab -->
+            <div class="tab-pane fade" id="subscribe" role="tabpanel" aria-labelledby="subscribe-tab">
+              <h6 class="text-muted text-uppercase mb-3">
+                <i class="fas fa-user-plus me-1" aria-hidden="true"></i>
+                Subscribe Devices to Topic
+              </h6>
+              <form action="/topics/subscribe" method="POST" id="subscribe-form"
+                    data-needs-validation novalidate role="form" aria-label="Subscribe devices form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                
+                <div class="mb-3">
+                  <label for="subscribeTopic" class="form-label">
+                    Select Topic
+                    <span class="text-danger" aria-label="required">*</span>
+                  </label>
+                  <select class="form-select" id="subscribeTopic" name="topic" required
+                          aria-describedby="subscribe-topic-help">
+                    <option value="" selected disabled>Choose a topic...</option>
+                    <% if (topics && topics.length > 0) { %>
+                      <% topics.forEach(topic => { %>
+                        <option value="<%= topic %>">
+                          <%= topic %> (<%= subscriptions.filter(s => s.topic === topic).length %> current subscribers)
+                        </option>
+                      <% }) %>
+                    <% } %>
+                  </select>
+                  <div id="subscribe-topic-help" class="form-text">
+                    <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                    Select which topic to subscribe devices to
+                  </div>
+                  <div class="invalid-feedback" role="alert"></div>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="subscribeTokens" class="form-label">
+                    Device Tokens
+                    <span class="text-danger" aria-label="required">*</span>
+                  </label>
+                  <textarea class="form-control" 
+                            id="subscribeTokens" 
+                            name="tokens" 
+                            rows="6" 
+                            required 
+                            placeholder="token1,&#10;token2,&#10;token3..."
+                            aria-describedby="subscribe-tokens-help"></textarea>
+                  <div id="subscribe-tokens-help" class="form-text">
+                    <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                    Enter FCM device tokens, one per line or separated by commas
+                  </div>
+                  <div class="invalid-feedback" role="alert"></div>
+                </div>
+                
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-success" id="subscribeBtn"
+                          <%= !topics || topics.length === 0 ? 'disabled' : '' %>
+                          aria-label="Subscribe devices to selected topic">
+                    <i class="fas fa-user-plus me-1" aria-hidden="true"></i>
+                    Subscribe Devices
+                  </button>
+                </div>
+                
+                <% if (!topics || topics.length === 0) { %>
+                <div class="alert alert-warning mt-3" role="alert">
+                  <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+                  You need to create at least one topic before subscribing devices.
+                </div>
+                <% } %>
+              </form>
+            </div>
+            
+            <!-- Unsubscribe Devices Tab -->
+            <div class="tab-pane fade" id="unsubscribe" role="tabpanel" aria-labelledby="unsubscribe-tab">
+              <h6 class="text-muted text-uppercase mb-3">
+                <i class="fas fa-user-minus me-1" aria-hidden="true"></i>
+                Unsubscribe Devices from Topic
+              </h6>
+              <form action="/topics/unsubscribe" method="POST" id="unsubscribe-form"
+                    data-needs-validation novalidate role="form" aria-label="Unsubscribe devices form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                
+                <div class="mb-3">
+                  <label for="unsubscribeTopic" class="form-label">
+                    Select Topic
+                    <span class="text-danger" aria-label="required">*</span>
+                  </label>
+                  <select class="form-select" id="unsubscribeTopic" name="topic" required
+                          aria-describedby="unsubscribe-topic-help">
+                    <option value="" selected disabled>Choose a topic...</option>
+                    <% if (topics && topics.length > 0) { %>
+                      <% topics.forEach(topic => { %>
+                        <option value="<%= topic %>">
+                          <%= topic %> (<%= subscriptions.filter(s => s.topic === topic).length %> current subscribers)
+                        </option>
+                      <% }) %>
+                    <% } %>
+                  </select>
+                  <div id="unsubscribe-topic-help" class="form-text">
+                    <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                    Select which topic to unsubscribe devices from
+                  </div>
+                  <div class="invalid-feedback" role="alert"></div>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="unsubscribeTokens" class="form-label">
+                    Device Tokens
+                    <span class="text-danger" aria-label="required">*</span>
+                  </label>
+                  <textarea class="form-control" 
+                            id="unsubscribeTokens" 
+                            name="tokens" 
+                            rows="6" 
+                            required 
+                            placeholder="token1,&#10;token2,&#10;token3..."
+                            aria-describedby="unsubscribe-tokens-help"></textarea>
+                  <div id="unsubscribe-tokens-help" class="form-text">
+                    <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                    Enter FCM device tokens to unsubscribe, one per line or separated by commas
+                  </div>
+                  <div class="invalid-feedback" role="alert"></div>
+                </div>
+                
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-warning" id="unsubscribeBtn"
+                          <%= !topics || topics.length === 0 ? 'disabled' : '' %>
+                          aria-label="Unsubscribe devices from selected topic">
+                    <i class="fas fa-user-minus me-1" aria-hidden="true"></i>
+                    Unsubscribe Devices
+                  </button>
+                </div>
+                
+                <% if (!topics || topics.length === 0) { %>
+                <div class="alert alert-warning mt-3" role="alert">
+                  <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+                  You need to create at least one topic before unsubscribing devices.
+                </div>
+                <% } %>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Subscription History -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card" role="region" aria-labelledby="subscription-history-title">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 id="subscription-history-title" class="mb-0">
+            <i class="fas fa-history me-2" aria-hidden="true"></i>
+            Subscription History
+          </h5>
+          <div class="d-flex gap-2">
+            <select class="form-select form-select-sm" id="topicFilter" 
+                    aria-label="Filter subscriptions by topic" style="width: auto;">
+              <option value="">All Topics</option>
+              <% if (topics && topics.length > 0) { %>
+                <% topics.forEach(topic => { %>
+                  <option value="<%= topic %>"><%= topic %></option>
+                <% }) %>
+              <% } %>
+            </select>
+            <select class="form-select form-select-sm" id="statusFilter" 
+                    aria-label="Filter subscriptions by status" style="width: auto;">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <% if (subscriptions && subscriptions.length > 0) { %>
+            <div class="table-container">
+              <table class="table table-hover data-table" id="subscriptionsTable" 
+                     role="table" aria-label="Topic subscriptions table">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <i class="fas fa-tag me-1" aria-hidden="true"></i>
+                      Topic
+                    </th>
+                    <th scope="col">
+                      <i class="fas fa-mobile-alt me-1" aria-hidden="true"></i>
+                      Device
+                    </th>
+                    <th scope="col">
+                      <i class="fas fa-heartbeat me-1" aria-hidden="true"></i>
+                      Status
+                    </th>
+                    <th scope="col">
+                      <i class="fas fa-clock me-1" aria-hidden="true"></i>
+                      Subscribed At
+                    </th>
+                    <th scope="col" class="text-center">
+                      <i class="fas fa-cogs me-1" aria-hidden="true"></i>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% subscriptions.forEach(sub => { %>
+                    <tr data-topic="<%= sub.topic %>" data-status="<%= sub.isActive ? 'active' : 'inactive' %>">
+                      <td>
+                        <span class="badge bg-primary">
+                          <i class="fas fa-tag me-1" aria-hidden="true"></i>
+                          <%= sub.topic %>
+                        </span>
+                      </td>
+                      <td>
+                        <div>
+                          <div class="fw-medium">
+                            <%= sub.deviceName || 'Unknown Device' %>
+                          </div>
+                          <small class="text-muted d-block">
+                            <i class="fas fa-fingerprint me-1" aria-hidden="true"></i>
+                            <%= sub.deviceToken.substring(0, 20) %>...
+                          </small>
+                        </div>
+                      </td>
+                      <td>
+                        <% if (sub.isActive) { %>
+                          <span class="badge bg-success" aria-label="Subscription is active">
+                            <i class="fas fa-check-circle me-1" aria-hidden="true"></i>
+                            Active
+                          </span>
+                        <% } else { %>
+                          <span class="badge bg-secondary" aria-label="Subscription is inactive">
+                            <i class="fas fa-times-circle me-1" aria-hidden="true"></i>
+                            Inactive
+                          </span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <span data-bs-toggle="tooltip" 
+                              title="<%= new Date(sub.subscribedAt).toLocaleString() %>"
+                              aria-label="Subscribed at: <%= new Date(sub.subscribedAt).toLocaleString() %>">
+                          <%= new Date(sub.subscribedAt).toLocaleDateString() %>
+                        </span>
+                        <small class="text-muted d-block">
+                          <%= new Date(sub.subscribedAt).toLocaleTimeString() %>
+                        </small>
+                      </td>
+                      <td class="text-center">
+                        <button class="btn btn-sm btn-outline-danger" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#unsubscribeModal"
+                                data-topic="<%= sub.topic %>"
+                                data-device="<%= sub.deviceName || 'Unknown Device' %>"
+                                data-token="<%= sub.deviceToken %>"
+                                aria-label="Unsubscribe <%= sub.deviceName || 'Unknown Device' %> from <%= sub.topic %>">
+                          <i class="fas fa-user-minus" aria-hidden="true"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="text-center py-5">
+              <i class="fas fa-history fa-4x text-muted mb-3" aria-hidden="true"></i>
+              <h5 class="text-muted mb-3">No Subscription History</h5>
+              <p class="text-muted mb-4">
+                Start by creating topics and subscribing devices to see subscription history here.
+              </p>
+              <button class="btn btn-primary" onclick="document.getElementById('create-tab').click()"
+                      aria-label="Go to create topic tab">
+                <i class="fas fa-plus me-1" aria-hidden="true"></i>
+                Create Your First Topic
+              </button>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Topic Modal -->
+<div class="modal fade" id="deleteTopicModal" tabindex="-1" 
+     aria-labelledby="deleteTopicModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteTopicModalLabel">
+          <i class="fas fa-exclamation-triangle me-2 text-danger" aria-hidden="true"></i>
+          Delete Topic
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" 
+                aria-label="Close delete topic confirmation"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" role="alert">
+          <h6 class="alert-heading">
+            <i class="fas fa-warning me-2" aria-hidden="true"></i>
+            Warning: This action cannot be undone!
+          </h6>
+          <p class="mb-0">
+            Are you sure you want to delete the topic: <strong id="topicToDelete"></strong>?
+          </p>
+        </div>
+        
+        <div class="mb-3">
+          <h6>What will happen:</h6>
+          <ul class="mb-0">
+            <li>The topic will be permanently removed</li>
+            <li>All device subscriptions to this topic will be lost</li>
+            <li>Future notifications to this topic will fail</li>
+            <li>This action cannot be reversed</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1" aria-hidden="true"></i>
+          Cancel
+        </button>
+        <form action="/topics/delete" method="POST" class="d-inline" id="deleteTopicForm">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="topic" id="deleteTopicInput">
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-1" aria-hidden="true"></i>
+            Delete Topic
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Unsubscribe Modal -->
+<div class="modal fade" id="unsubscribeModal" tabindex="-1" 
+     aria-labelledby="unsubscribeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="unsubscribeModalLabel">
+          <i class="fas fa-user-minus me-2 text-warning" aria-hidden="true"></i>
+          Unsubscribe Device
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" 
+                aria-label="Close unsubscribe confirmation"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to unsubscribe <strong id="deviceToUnsubscribe"></strong> from topic <strong id="topicToUnsubscribeFrom"></strong>?</p>
+        <p class="text-muted">The device will no longer receive notifications sent to this topic.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1" aria-hidden="true"></i>
+          Cancel
+        </button>
+        <form action="/topics/unsubscribe" method="POST" class="d-inline" id="unsubscribeForm">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="topic" id="unsubscribeTopicInput">
+          <input type="hidden" name="tokens" id="unsubscribeTokenInput">
+          <button type="submit" class="btn btn-warning">
+            <i class="fas fa-user-minus me-1" aria-hidden="true"></i>
+            Unsubscribe
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Topics Help Modal -->
+<div class="modal fade" id="topicsHelpModal" tabindex="-1" 
+     aria-labelledby="topicsHelpModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="topicsHelpModalLabel">
+          <i class="fas fa-question-circle me-2" aria-hidden="true"></i>
+          Topics Help & Guidelines
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" 
+                aria-label="Close topics help"></button>
+      </div>
+      <div class="modal-body">
+        <div class="accordion" id="topicsHelpAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="helpHeadingOne">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#helpCollapseOne" aria-expanded="true" aria-controls="helpCollapseOne">
+                <i class="fas fa-tags me-2" aria-hidden="true"></i>
+                What are FCM Topics?
+              </button>
+            </h2>
+            <div id="helpCollapseOne" class="accordion-collapse collapse show" 
+                 aria-labelledby="helpHeadingOne" data-bs-parent="#topicsHelpAccordion">
+              <div class="accordion-body">
+                <p>FCM topics are a way to organize and target groups of devices for push notifications. Instead of sending to individual device tokens, you can send to all devices subscribed to a topic.</p>
+                <p><strong>Benefits:</strong></p>
+                <ul>
+                  <li>Easy targeting of user groups (e.g., "news", "sports", "promotions")</li>
+                  <li>Dynamic subscription management - users can opt in/out</li>
+                  <li>Scalable - no need to manage large lists of device tokens</li>
+                  <li>Efficient - Firebase handles the delivery to all subscribers</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="helpHeadingTwo">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#helpCollapseTwo" aria-expanded="false" aria-controls="helpCollapseTwo">
+                <i class="fas fa-plus me-2" aria-hidden="true"></i>
+                Creating Topics
+              </button>
+            </h2>
+            <div id="helpCollapseTwo" class="accordion-collapse collapse" 
+                 aria-labelledby="helpHeadingTwo" data-bs-parent="#topicsHelpAccordion">
+              <div class="accordion-body">
+                <p><strong>Topic Naming Rules:</strong></p>
+                <ul>
+                  <li>Only letters, numbers, underscores (_), and hyphens (-) allowed</li>
+                  <li>Must be 2-50 characters long</li>
+                  <li>Cannot contain spaces or special characters</li>
+                  <li>Case-sensitive (e.g., "News" and "news" are different topics)</li>
+                </ul>
+                <p><strong>Best Practices:</strong></p>
+                <ul>
+                  <li>Use descriptive names: "breaking-news", "weekly-deals", "app-updates"</li>
+                  <li>Consider using prefixes: "prod-news", "beta-updates"</li>
+                  <li>Keep names short but meaningful</li>
+                  <li>Plan your topic hierarchy before creating many topics</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="helpHeadingThree">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#helpCollapseThree" aria-expanded="false" aria-controls="helpCollapseThree">
+                <i class="fas fa-users me-2" aria-hidden="true"></i>
+                Managing Subscriptions
+              </button>
+            </h2>
+            <div id="helpCollapseThree" class="accordion-collapse collapse" 
+                 aria-labelledby="helpHeadingThree" data-bs-parent="#topicsHelpAccordion">
+              <div class="accordion-body">
+                <p><strong>Device Token Format:</strong></p>
+                <ul>
+                  <li>Enter one token per line or separate with commas</li>
+                  <li>Tokens are long strings (150+ characters typically)</li>
+                  <li>Each device has a unique FCM token</li>
+                  <li>Tokens can change when apps are updated or reinstalled</li>
+                </ul>
+                <p><strong>Subscription Management:</strong></p>
+                <ul>
+                  <li>Devices can be subscribed to multiple topics</li>
+                  <li>Subscriptions persist until explicitly removed</li>
+                  <li>Invalid tokens are automatically cleaned up by Firebase</li>
+                  <li>Monitor subscription history to track changes</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1" aria-hidden="true"></i>
+          Close
+        </button>
+        <a href="https://firebase.google.com/docs/cloud-messaging/topic-messaging" 
+           target="_blank" 
+           rel="noopener noreferrer"
+           class="btn btn-primary"
+           aria-label="Open Firebase topic messaging documentation">
+          <i class="fas fa-external-link-alt me-1" aria-hidden="true"></i>
+          Firebase Docs
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced JavaScript -->
+<script>
+(function() {
+  'use strict';
+
+  // Integration with FCM Dashboard
+  const FCM = window.FCMDashboard?.FCM || {};
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    initTopicsPage();
+  });
+
+  /**
+   * Initialize topics page functionality
+   */
+  function initTopicsPage() {
+    initSubscriptionsTable();
+    initSubscriptionFilters();
+    initTopicForms();
+    initModals();
+    
+    // Integrate with FCM tooltips if available
+    if (FCM.ui?.initTooltips) {
+      FCM.ui.initTooltips();
+    }
+  }
+
+  /**
+   * Initialize subscriptions table with DataTables
+   */
+  function initSubscriptionsTable() {
+    const $table = $('#subscriptionsTable');
+    if (!$table.length || !window.FCMDashboard?.FCM?.dataTables?.safeInit) return;
+    
+    const options = {
+      order: [[3, 'desc']], // Sort by subscription date
+      language: {
+        emptyTable: 'No subscriptions found',
+        zeroRecords: 'No subscriptions match your search'
+      }
+    };
+    
+    window.FCMDashboard.FCM.dataTables.safeInit('#subscriptionsTable', options);
+  }
+
+  /**
+   * Initialize subscription filters
+   */
+  function initSubscriptionFilters() {
+    const topicFilter = document.getElementById('topicFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (topicFilter) {
+      topicFilter.addEventListener('change', filterSubscriptions);
+    }
+    
+    if (statusFilter) {
+      statusFilter.addEventListener('change', filterSubscriptions);
+    }
+  }
+
+  /**
+   * Filter subscriptions based on topic and status
+   */
+  function filterSubscriptions() {
+    const topicFilter = document.getElementById('topicFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('#subscriptionsTable tbody tr');
+    
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+      const topic = row.dataset.topic;
+      const status = row.dataset.status;
+      
+      let showRow = true;
+      
+      if (topicFilter && topic !== topicFilter) {
+        showRow = false;
+      }
+      
+      if (statusFilter && status !== statusFilter) {
+        showRow = false;
+      }
+      
+      if (showRow) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+    
+    // Announce filter results
+    if (FCM.accessibility?.announce) {
+      FCM.accessibility.announce(`${visibleCount} subscriptions match the current filters`);
+    }
+  }
+
+  /**
+   * Initialize topic forms with validation
+   */
+  function initTopicForms() {
+    // Form validation
+    const forms = document.querySelectorAll('form[data-needs-validation]');
+    forms.forEach(form => {
+      form.addEventListener('submit', function(e) {
+        if (!this.checkValidity()) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Focus on first invalid field
+          const firstInvalid = this.querySelector(':invalid');
+          if (firstInvalid) {
+            firstInvalid.focus();
+            firstInvalid.scrollIntoView({ 
+              behavior: FCM.state?.reducedMotion ? 'auto' : 'smooth',
+              block: 'center' 
+            });
+          }
+        } else {
+          // Add loading state to submit button
+          const submitBtn = this.querySelector('button[type="submit"]');
+          if (submitBtn && FCM.forms?.addLoadingState) {
+            FCM.forms.addLoadingState($(submitBtn));
+          }
+        }
+        
+        this.classList.add('was-validated');
+      });
+
+      // Real-time validation
+      form.querySelectorAll('input, textarea, select').forEach(field => {
+        field.addEventListener('blur', function() {
+          validateField(this);
+        });
+        
+        field.addEventListener('input', function() {
+          if (this.classList.contains('is-invalid')) {
+            validateField(this);
+          }
+        });
+      });
+    });
+
+    // Topic name validation
+    const topicNameField = document.getElementById('topicName');
+    if (topicNameField) {
+      topicNameField.addEventListener('input', function() {
+        const value = this.value;
+        const isValid = /^[a-zA-Z0-9_-]*$/.test(value) && value.length >= 2 && value.length <= 50;
+        
+        if (value && !isValid) {
+          this.classList.add('is-invalid');
+          this.classList.remove('is-valid');
+          
+          let errorMessage = '';
+          if (value.length < 2) {
+            errorMessage = 'Topic name must be at least 2 characters';
+          } else if (value.length > 50) {
+            errorMessage = 'Topic name must not exceed 50 characters';
+          } else {
+            errorMessage = 'Only letters, numbers, underscores, and hyphens allowed';
+          }
+          
+          const feedback = this.parentNode.querySelector('.invalid-feedback');
+          if (feedback) {
+            feedback.textContent = errorMessage;
+          }
+        } else if (value) {
+          this.classList.add('is-valid');
+          this.classList.remove('is-invalid');
+        }
+      });
+    }
+  }
+
+  /**
+   * Validate individual field
+   */
+  function validateField(field) {
+    const value = field.value.trim();
+    let isValid = true;
+    let errorMessage = '';
+
+    // Clear previous state
+    field.classList.remove('is-valid', 'is-invalid');
+    const feedback = field.parentNode.querySelector('.invalid-feedback');
+    if (feedback) feedback.textContent = '';
+
+    // Required field validation
+    if (field.hasAttribute('required') && !value) {
+      isValid = false;
+      errorMessage = `${getFieldLabel(field)} is required`;
+    }
+    // URL validation
+    else if (field.type === 'url' && value) {
+      try {
+        new URL(value);
+      } catch {
+        isValid = false;
+        errorMessage = 'Please enter a valid URL';
+      }
+    }
+
+    // Apply validation styling
+    if (isValid) {
+      field.classList.add('is-valid');
+    } else {
+      field.classList.add('is-invalid');
+      if (feedback) {
+        feedback.textContent = errorMessage;
+      }
+    }
+
+    return isValid;
+  }
+
+  /**
+   * Get user-friendly field label
+   */
+  function getFieldLabel(field) {
+    const label = document.querySelector(`label[for="${field.id}"]`);
+    return label ? label.textContent.replace('*', '').trim() : 
+           field.name.charAt(0).toUpperCase() + field.name.slice(1);
+  }
+
+  /**
+   * Initialize modals
+   */
+  function initModals() {
+    // Delete topic modal
+    const deleteTopicModal = document.getElementById('deleteTopicModal');
+    if (deleteTopicModal) {
+      deleteTopicModal.addEventListener('show.bs.modal', function(e) {
+        const button = e.relatedTarget;
+        const topic = button.dataset.topic;
+        
+        document.getElementById('topicToDelete').textContent = topic;
+        document.getElementById('deleteTopicInput').value = topic;
+      });
+    }
+
+    // Unsubscribe modal
+    const unsubscribeModal = document.getElementById('unsubscribeModal');
+    if (unsubscribeModal) {
+      unsubscribeModal.addEventListener('show.bs.modal', function(e) {
+        const button = e.relatedTarget;
+        const topic = button.dataset.topic;
+        const device = button.dataset.device;
+        const token = button.dataset.token;
+        
+        document.getElementById('deviceToUnsubscribe').textContent = device;
+        document.getElementById('topicToUnsubscribeFrom').textContent = topic;
+        document.getElementById('unsubscribeTopicInput').value = topic;
+        document.getElementById('unsubscribeTokenInput').value = token;
+      });
+    }
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + Shift + T to focus on create topic
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+      e.preventDefault();
+      document.getElementById('create-tab').click();
+      setTimeout(() => {
+        document.getElementById('topicName').focus();
+      }, 100);
+    }
+  });
+
+})();
+</script> 

@@ -1,0 +1,592 @@
+<%- include('../partials/csrf') %>
+
+<!-- Main Content -->
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow-lg auth-card">
+      <div class="card-header text-center">
+        <h1 class="h3 mb-0">
+          <i class="fas fa-bell me-2" aria-hidden="true"></i>
+          <span>FCM Dashboard</span>
+        </h1>
+        <p class="mb-0 mt-2 text-white-50">Firebase Cloud Messaging Management</p>
+      </div>
+      <div class="card-body p-4">
+        <h2 class="card-title text-center mb-4">Sign In</h2>
+        
+        <form action="/auth/login" method="POST" id="loginForm" data-needs-validation novalidate 
+              role="form" aria-label="Login form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          
+          <!-- Username Field -->
+          <div class="mb-3">
+            <label for="username" class="form-label">
+              <i class="fas fa-user me-1" aria-hidden="true"></i>
+              Username
+              <span class="text-danger" aria-label="required">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text" aria-hidden="true">
+                <i class="fas fa-user"></i>
+              </span>
+              <input type="text" 
+                     class="form-control" 
+                     id="username" 
+                     name="username" 
+                     required 
+                     autofocus
+                     autocomplete="username"
+                     minlength="4"
+                     maxlength="30"
+                     pattern="^[a-zA-Z0-9_]+$"
+                     aria-describedby="username-help"
+                     placeholder="Enter your username"
+                     data-validate="username">
+              <div class="invalid-feedback" role="alert"></div>
+            </div>
+            <div id="username-help" class="form-text">
+              Username must be 4-30 characters, letters, numbers, and underscores only
+            </div>
+          </div>
+          
+          <!-- Password Field -->
+          <div class="mb-3">
+            <label for="password" class="form-label">
+              <i class="fas fa-lock me-1" aria-hidden="true"></i>
+              Password
+              <span class="text-danger" aria-label="required">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text" aria-hidden="true">
+                <i class="fas fa-lock"></i>
+              </span>
+              <input type="password" 
+                     class="form-control" 
+                     id="password" 
+                     name="password" 
+                     required
+                     autocomplete="current-password"
+                     minlength="8"
+                     maxlength="128"
+                     aria-describedby="password-help"
+                     placeholder="Enter your password"
+                     data-validate="password">
+              <button class="btn btn-outline-secondary" 
+                      type="button" 
+                      id="togglePassword"
+                      aria-label="Toggle password visibility"
+                      tabindex="-1">
+                <i class="fas fa-eye" aria-hidden="true"></i>
+              </button>
+              <div class="invalid-feedback" role="alert"></div>
+            </div>
+            <div id="password-help" class="form-text">
+              Minimum 8 characters required
+            </div>
+          </div>
+
+          <!-- Remember Me Option -->
+          <div class="mb-3 form-check">
+            <input type="checkbox" 
+                   class="form-check-input" 
+                   id="rememberMe" 
+                   name="rememberMe"
+                   value="true">
+            <label class="form-check-label" for="rememberMe">
+              Remember me for 30 days
+            </label>
+          </div>
+
+          <!-- reCAPTCHA v2 -->
+          <% if (process.env.RECAPTCHA_SITE_KEY && process.env.RECAPTCHA_SECRET_KEY) { %>
+          <div class="mb-3">
+            <div class="recaptcha-container">
+              <div class="g-recaptcha" 
+                   data-sitekey="<%= process.env.RECAPTCHA_SITE_KEY %>"
+                   data-theme="dark"
+                   data-size="normal"
+                   data-callback="onRecaptchaSuccess"
+                   data-expired-callback="onRecaptchaExpired"
+                   data-error-callback="onRecaptchaError"
+                   aria-label="reCAPTCHA verification">
+              </div>
+            </div>
+            <div class="invalid-feedback d-block" id="recaptcha-error" role="alert" style="display: none !important;"></div>
+          </div>
+          <% } else { %>
+          <!-- Fallback honeypot field when reCAPTCHA is not configured -->
+          <input type="text" 
+                 name="website" 
+                 style="display: none;" 
+                 tabindex="-1" 
+                 autocomplete="off"
+                 aria-hidden="true">
+          <% } %>
+          
+          <!-- Submit Button -->
+          <div class="d-grid gap-2 mt-4">
+            <button type="submit" 
+                    class="btn btn-primary btn-lg" 
+                    id="submitButton"
+                    <% if (process.env.RECAPTCHA_SITE_KEY && process.env.RECAPTCHA_SECRET_KEY) { %>disabled<% } %>
+                    aria-describedby="submit-help">
+              <i class="fas fa-sign-in-alt me-2" aria-hidden="true"></i>
+              <span>Sign In</span>
+            </button>
+            <div id="submit-help" class="form-text text-center">
+              <% if (process.env.RECAPTCHA_SITE_KEY && process.env.RECAPTCHA_SECRET_KEY) { %>
+              Complete the reCAPTCHA to enable sign in
+              <% } else { %>
+              reCAPTCHA is not configured. Please contact the administrator.
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Additional Security Notice -->
+          <div class="mt-4 text-center">
+            <small class="text-muted">
+              <i class="fas fa-shield-alt me-1" aria-hidden="true"></i>
+              Your connection is secure and encrypted
+            </small>
+          </div>
+        </form>
+
+        <!-- Additional Information -->
+        <div class="mt-4 text-center">
+          <hr class="my-3">
+          <small class="text-muted">
+            <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+            Need help? Contact your system administrator
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Security and Anti-Bot Measures -->
+<div style="display: none;" aria-hidden="true">
+  <!-- Honeypot fields for bot detection -->
+  <input type="text" name="email" tabindex="-1" autocomplete="off">
+  <input type="text" name="phone" tabindex="-1" autocomplete="off">
+  <input type="text" name="address" tabindex="-1" autocomplete="off">
+</div>
+
+<!-- reCAPTCHA v2 Script -->
+<% if (process.env.RECAPTCHA_SITE_KEY && process.env.RECAPTCHA_SECRET_KEY) { %>
+<script src="https://www.google.com/recaptcha/api.js" 
+        async 
+        defer
+        onerror="console.warn('reCAPTCHA failed to load')"></script>
+<% } %>
+
+<!-- Enhanced Login Security Script -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    'use strict';
+    
+  try {
+    const loginForm = document.getElementById('loginForm');
+    const submitButton = document.getElementById('submitButton');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    
+    // Check for required form elements
+    if (!loginForm || !usernameInput || !passwordInput) {
+      console.error('Required form elements not found');
+      return;
+    }
+    
+    // Security: Track login attempts
+    let attemptCount = 0;
+    const maxAttempts = 5;
+    const lockoutTime = 15 * 60 * 1000; // 15 minutes
+    
+    // Enhanced input sanitization and validation
+    function sanitizeInput(input) {
+      return input.replace(/[<>'"&]/g, function(match) {
+        const htmlEntities = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
+        };
+        return htmlEntities[match];
+      });
+    }
+    
+    // Real-time input validation with security
+    usernameInput.addEventListener('input', function() {
+      const value = this.value;
+      
+      // Remove any potentially harmful characters
+      this.value = value.replace(/[^a-zA-Z0-9_]/g, '');
+      
+      // Length validation
+      if (this.value.length > 30) {
+        this.value = this.value.substring(0, 30);
+      }
+      
+      validateUsername();
+    });
+    
+    passwordInput.addEventListener('input', function() {
+      // Prevent extremely long passwords (DoS protection)
+      if (this.value.length > 128) {
+        this.value = this.value.substring(0, 128);
+      }
+      
+      validatePassword();
+    });
+    
+    // Username validation
+    function validateUsername() {
+      const value = usernameInput.value.trim();
+      const isValid = value.length >= 4 && /^[a-zA-Z0-9_]+$/.test(value);
+      
+      usernameInput.classList.toggle('is-valid', isValid && value.length > 0);
+      usernameInput.classList.toggle('is-invalid', !isValid && value.length > 0);
+      
+      return isValid;
+    }
+    
+    // Password validation
+    function validatePassword() {
+      const value = passwordInput.value;
+      const isValid = value.length >= 8;
+      
+      passwordInput.classList.toggle('is-valid', isValid);
+      passwordInput.classList.toggle('is-invalid', !isValid && value.length > 0);
+      
+      return isValid;
+    }
+    
+    // Password visibility toggle
+    if (togglePasswordBtn) {
+      togglePasswordBtn.addEventListener('click', function() {
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        
+        const icon = this.querySelector('i');
+        icon.className = isPassword ? 'fas fa-eye-slash' : 'fas fa-eye';
+        
+        this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        
+        // Announce change to screen readers
+        window.announceToScreenReader(isPassword ? 'Password shown' : 'Password hidden');
+      });
+    }
+    
+    // reCAPTCHA callback functions
+    <% if (process.env.RECAPTCHA_SITE_KEY && process.env.RECAPTCHA_SECRET_KEY) { %>
+    window.onRecaptchaSuccess = function(token) {
+      submitButton.disabled = false;
+      document.getElementById('recaptcha-error').style.display = 'none';
+      
+      // Announce to screen readers
+      window.announceToScreenReader('reCAPTCHA completed successfully');
+    };
+    
+    window.onRecaptchaExpired = function() {
+      submitButton.disabled = true;
+      showRecaptchaError('reCAPTCHA expired. Please verify again.');
+    };
+    
+    window.onRecaptchaError = function() {
+      submitButton.disabled = true;
+      showRecaptchaError('reCAPTCHA error. Please try again.');
+    };
+    
+    function showRecaptchaError(message) {
+      const errorDiv = document.getElementById('recaptcha-error');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      
+      // Announce to screen readers
+      window.announceToScreenReader(message, 'assertive');
+    }
+    <% } %>
+    
+    // Enhanced form submission with security checks
+    loginForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      
+      // Check rate limiting
+      if (checkRateLimit()) {
+        return;
+      }
+      
+      // Validate all fields
+      const isUsernameValid = validateUsername();
+      const isPasswordValid = validatePassword();
+      
+      <% if (process.env.RECAPTCHA_SITE_KEY && process.env.RECAPTCHA_SECRET_KEY) { %>
+      // Check if reCAPTCHA is configured and loaded
+      if (typeof grecaptcha !== 'undefined') {
+        const recaptchaElement = document.querySelector('textarea[name="g-recaptcha-response"]');
+        if (!recaptchaElement) {
+          showRecaptchaError('reCAPTCHA not loaded. Please refresh the page and try again.');
+          return;
+        }
+        const recaptchaResponse = recaptchaElement.value;
+        if (!recaptchaResponse) {
+          showRecaptchaError('Please complete the reCAPTCHA verification');
+          return;
+        }
+      } else {
+        showRecaptchaError('reCAPTCHA service not available. Please refresh the page and try again.');
+        return;
+      }
+      <% } else { %>
+      // Check honeypot fields for bot detection
+      const honeypotFields = ['email', 'phone', 'address', 'website'];
+      for (const field of honeypotFields) {
+        const honeypotInput = document.querySelector(`input[name="${field}"]`);
+        if (honeypotInput && honeypotInput.value) {
+          // Likely a bot, silently fail
+          window.announceToScreenReader('Authentication failed. Please try again.');
+          return;
+        }
+      }
+      <% } %>
+      
+      if (!isUsernameValid || !isPasswordValid) {
+        // Focus on first invalid field
+        const firstInvalid = loginForm.querySelector('.is-invalid');
+        if (firstInvalid) {
+          firstInvalid.focus();
+        }
+        return;
+      }
+      
+      // Sanitize inputs before submission
+      usernameInput.value = sanitizeInput(usernameInput.value.trim());
+      
+      // Add loading state
+      addLoadingState();
+      
+      // Track attempt
+      attemptCount++;
+      localStorage.setItem('loginAttempts', attemptCount.toString());
+      localStorage.setItem('lastAttemptTime', Date.now().toString());
+      
+      // Submit form
+      this.submit();
+    });
+    
+    // Rate limiting check
+    function checkRateLimit() {
+      const storedAttempts = parseInt(localStorage.getItem('loginAttempts') || '0');
+      const lastAttemptTime = parseInt(localStorage.getItem('lastAttemptTime') || '0');
+      const now = Date.now();
+      
+      // Reset counter if lockout period has passed
+      if (now - lastAttemptTime > lockoutTime) {
+        localStorage.removeItem('loginAttempts');
+        localStorage.removeItem('lastAttemptTime');
+        return false;
+      }
+      
+      if (storedAttempts >= maxAttempts) {
+        const remainingTime = Math.ceil((lockoutTime - (now - lastAttemptTime)) / 60000);
+        showError(`Too many failed attempts. Please wait ${remainingTime} minutes before trying again.`);
+        
+        submitButton.disabled = true;
+        submitButton.innerHTML = `<i class="fas fa-clock me-2"></i>Wait ${remainingTime} min`;
+        
+        return true;
+      }
+      
+      return false;
+    }
+    
+    // HTML escaping function to prevent XSS
+    function escapeHtml(text) {
+      const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+      return text ? text.toString().replace(/[&<>"']/g, m => map[m]) : '';
+    }
+
+    // Show error message
+    function showError(message) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+      alertDiv.setAttribute('role', 'alert');
+      alertDiv.innerHTML = `
+        <i class="fas fa-exclamation-circle me-2"></i>
+        ${escapeHtml(message)}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      `;
+      
+      loginForm.insertBefore(alertDiv, loginForm.firstChild);
+      
+      // Announce to screen readers
+      window.announceToScreenReader(message, 'assertive');
+    }
+    
+    // Loading state for submit button
+    function addLoadingState() {
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Signing in...';
+      submitButton.setAttribute('aria-busy', 'true');
+      
+      // Announce to screen readers
+      window.announceToScreenReader('Signing in, please wait');
+    }
+    
+    // Security: Clear sensitive data on page unload
+    window.addEventListener('beforeunload', function() {
+      passwordInput.value = '';
+    });
+    
+    // Security: Disable context menu on password field
+    passwordInput.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+    
+    // Security: Disable drag and drop on form fields
+    [usernameInput, passwordInput].forEach(input => {
+      input.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+      });
+      
+      input.addEventListener('drop', function(e) {
+        e.preventDefault();
+      });
+    });
+    
+    // Accessibility: Announce errors to screen readers
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1 && node.classList.contains('alert-danger')) {
+              const message = node.textContent.trim();
+              window.announceToScreenReader(message, 'assertive');
+            }
+          });
+        }
+      });
+    });
+    
+    observer.observe(document.querySelector('.container'), {
+      childList: true,
+      subtree: true
+    });
+    
+    // Check for rate limiting on page load
+    checkRateLimit();
+    
+    // Clear successful login attempts
+    if (window.location.search.includes('success=true')) {
+      localStorage.removeItem('loginAttempts');
+      localStorage.removeItem('lastAttemptTime');
+    }
+  } catch (error) {
+    console.error('Authentication page error:', error);
+    // Provide user-friendly error message
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-warning mt-3';
+    errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Some page features may not work properly. Please refresh the page.';
+    const formContainer = document.querySelector('.card-body');
+    if (formContainer) {
+      formContainer.appendChild(errorDiv);
+    }
+  }
+  });
+</script>
+
+<!-- Additional CSS for auth page styling -->
+<style>
+  .auth-page {
+    background: linear-gradient(135deg, var(--fcm-bg-primary), var(--fcm-bg-secondary));
+    min-height: 100vh;
+  }
+  
+  .auth-card {
+    border: none;
+    backdrop-filter: blur(10px);
+    background: rgba(33, 38, 45, 0.95);
+  }
+  
+  .auth-card .card-header {
+    background: linear-gradient(135deg, var(--fcm-primary), var(--fcm-primary-dark));
+    border-radius: 16px 16px 0 0;
+  }
+  
+  /* Enhanced security styling */
+  .input-group input[data-validate]:focus {
+    border-color: var(--fcm-primary);
+    box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+  }
+  
+  .input-group input.is-valid {
+    border-color: var(--fcm-success-emphasis);
+  }
+  
+  .input-group input.is-invalid {
+    border-color: var(--fcm-danger-emphasis);
+  }
+  
+  /* reCAPTCHA container and styling fixes */
+  .recaptcha-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem 0;
+    min-height: 78px; /* Standard reCAPTCHA height */
+    position: relative;
+    overflow: visible;
+  }
+  
+  .g-recaptcha {
+    display: block !important;
+    position: relative !important;
+    transform: none !important;
+    transform-origin: center !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+  
+  /* Fix reCAPTCHA iframe positioning */
+  .g-recaptcha iframe {
+    position: relative !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Responsive scaling for small screens */
+  @media (max-width: 576px) {
+    .recaptcha-container {
+      min-height: 65px; /* Scaled height */
+    }
+    
+    .g-recaptcha {
+      transform: scale(0.85) !important;
+      transform-origin: center !important;
+    }
+  }
+  
+  @media (max-width: 400px) {
+    .recaptcha-container {
+      min-height: 58px; /* Further scaled height */
+    }
+    
+    .g-recaptcha {
+      transform: scale(0.75) !important;
+    }
+  }
+  
+  /* Dark theme iframe styling fixes */
+  .g-recaptcha iframe {
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  /* Prevent white background bleeding */
+  .g-recaptcha div > div {
+    background: transparent !important;
+  }
+</style>

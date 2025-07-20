@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FCM Dashboard Authentication - Secure login to Firebase Cloud Messaging management platform">
+  <meta name="keywords" content="FCM, Firebase, Cloud Messaging, Login, Authentication">
+  <meta name="author" content="FCM Dashboard">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  
+  <title>FCM Dashboard | <%= typeof title !== 'undefined' ? title : 'Authentication' %></title>
+  
+  <!-- Preconnect to external domains for performance -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.google.com" crossorigin>
+  
+  <!-- Bootstrap CSS with integrity check -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" 
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  
+  <!-- Font Awesome Icons with integrity check -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+  <!-- Favicon and app icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <meta name="theme-color" content="#4361ee">
+</head>
+<body class="auth-page">
+  <!-- Skip Links for Accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Main Content Area -->
+  <main class="container mt-4" id="main-content" role="main">
+    <!-- Flash Messages with Enhanced Accessibility -->
+    <div class="flash-messages" role="region" aria-label="Status messages">
+      <% if(typeof success_msg != 'undefined' && success_msg && success_msg !== '') { %>
+      <div class="alert alert-success alert-dismissible fade show" role="alert" aria-live="polite">
+        <i class="fas fa-check-circle me-2" aria-hidden="true"></i>
+        <span class="sr-only">Success:</span>
+        <%= success_msg %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close success message"></button>
+      </div>
+      <% } %>
+
+      <% if(typeof error_msg != 'undefined' && error_msg && error_msg !== '') { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert" aria-live="assertive">
+        <i class="fas fa-exclamation-circle me-2" aria-hidden="true"></i>
+        <span class="sr-only">Error:</span>
+        <%= error_msg %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close error message"></button>
+      </div>
+      <% } %>
+
+      <% if(typeof info_msg != 'undefined' && info_msg && info_msg !== '') { %>
+      <div class="alert alert-info alert-dismissible fade show" role="alert" aria-live="polite">
+        <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
+        <span class="sr-only">Information:</span>
+        <%= info_msg %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close info message"></button>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- Authentication Content -->
+    <%- body %>
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-5" role="contentinfo">
+    <div class="container text-center">
+      <p class="mb-0">
+        <small>&copy; <%= new Date().getFullYear() %> FCM Dashboard. Secure <a href="https://github.com/moonshadowrev/FCMPanel" target="_blank" rel="noopener noreferrer" class="text-decoration-none">Firebase Cloud Messaging</a> management.</small>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <!-- Bootstrap JS with integrity check -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
+          integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" 
+          crossorigin="anonymous"></script>
+
+  <!-- Enhanced Authentication JavaScript -->
+  <script>
+    // Security: Set up CSP nonce if available
+    <% if (typeof nonce !== 'undefined') { %>
+    window.cspNonce = '<%= nonce %>';
+    <% } %>
+
+    document.addEventListener('DOMContentLoaded', function() {
+      'use strict';
+      
+      // Auto-dismiss alerts with enhanced accessibility
+      setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+        alerts.forEach(alert => {
+          if (bootstrap.Alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+          }
+        });
+      }, 8000); // 8 seconds for better accessibility
+
+      // Enhanced form validation with accessibility
+      const authForms = document.querySelectorAll('form');
+      authForms.forEach(form => {
+        // Add validation attributes
+        form.setAttribute('novalidate', '');
+        
+        form.addEventListener('submit', function(event) {
+          const isValid = validateForm(form);
+          
+          if (!isValid) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Focus on first invalid field
+            const firstInvalid = form.querySelector(':invalid, .is-invalid');
+            if (firstInvalid) {
+              firstInvalid.focus();
+              firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          } else {
+            // Add loading state to submit button
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) {
+              addLoadingState(submitButton);
+            }
+          }
+          
+          form.classList.add('was-validated');
+        });
+
+        // Real-time validation feedback
+        const inputs = form.querySelectorAll('input[required]');
+        inputs.forEach(input => {
+          input.addEventListener('blur', function() {
+            validateInput(this);
+          });
+          
+          input.addEventListener('input', function() {
+            if (this.classList.contains('is-invalid')) {
+              validateInput(this);
+            }
+          });
+        });
+      });
+
+      // Custom form validation function
+      function validateForm(form) {
+        let isValid = true;
+        const inputs = form.querySelectorAll('input[required]');
+        
+        inputs.forEach(input => {
+          if (!validateInput(input)) {
+            isValid = false;
+          }
+        });
+
+        // reCAPTCHA validation if present
+        const recaptchaResponse = form.querySelector('textarea[name="g-recaptcha-response"]');
+        if (recaptchaResponse && !recaptchaResponse.value) {
+          showError('Please complete the reCAPTCHA verification');
+          isValid = false;
+        }
+
+        return isValid;
+      }
+
+      // Validate individual input
+      function validateInput(input) {
+        const value = input.value.trim();
+        let isValid = true;
+        let errorMessage = '';
+
+        // Remove previous validation classes
+        input.classList.remove('is-valid', 'is-invalid');
+        
+        // Clear previous error message
+        const existingError = input.parentNode.querySelector('.invalid-feedback');
+        if (existingError) {
+          existingError.remove();
+        }
+
+        // Required field validation
+        if (input.hasAttribute('required') && !value) {
+          isValid = false;
+          errorMessage = `${getFieldLabel(input)} is required`;
+        }
+        
+        // Username validation
+        else if (input.name === 'username') {
+          if (value.length < 4) {
+            isValid = false;
+            errorMessage = 'Username must be at least 4 characters long';
+          } else if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+            isValid = false;
+            errorMessage = 'Username can only contain letters, numbers, and underscores';
+          }
+        }
+        
+        // Password validation
+        else if (input.type === 'password' && input.name === 'password') {
+          if (value.length < 8) {
+            isValid = false;
+            errorMessage = 'Password must be at least 8 characters long';
+          }
+          // Additional password strength validation for registration
+          else if (input.form.querySelector('input[name="passwordConfirm"]')) {
+            if (!/(?=.*[a-z])/.test(value)) {
+              isValid = false;
+              errorMessage = 'Password must contain at least one lowercase letter';
+            } else if (!/(?=.*[A-Z])/.test(value)) {
+              isValid = false;
+              errorMessage = 'Password must contain at least one uppercase letter';
+            } else if (!/(?=.*\d)/.test(value)) {
+              isValid = false;
+              errorMessage = 'Password must contain at least one number';
+            } else if (!/(?=.*[^a-zA-Z0-9])/.test(value)) {
+              isValid = false;
+              errorMessage = 'Password must contain at least one special character';
+            }
+          }
+        }
+        
+        // Email validation
+        else if (input.type === 'email') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            isValid = false;
+            errorMessage = 'Please enter a valid email address';
+          }
+        }
+
+        // Apply validation styling and feedback
+        if (isValid) {
+          input.classList.add('is-valid');
+        } else {
+          input.classList.add('is-invalid');
+          
+          // Add error message
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'invalid-feedback';
+          errorDiv.textContent = errorMessage;
+          errorDiv.setAttribute('role', 'alert');
+          input.parentNode.appendChild(errorDiv);
+        }
+
+        return isValid;
+      }
+
+      // Get user-friendly field label
+      function getFieldLabel(input) {
+        const label = input.form.querySelector(`label[for="${input.id}"]`);
+        return label ? label.textContent.replace('*', '').trim() : 
+               input.name.charAt(0).toUpperCase() + input.name.slice(1);
+      }
+
+      // Show error message
+      function showError(message) {
+        // Create or update error alert
+        let errorAlert = document.querySelector('.alert-danger');
+        if (!errorAlert) {
+          errorAlert = document.createElement('div');
+          errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+          errorAlert.setAttribute('role', 'alert');
+          errorAlert.setAttribute('aria-live', 'assertive');
+          
+          const flashMessages = document.querySelector('.flash-messages');
+          if (flashMessages) {
+            flashMessages.appendChild(errorAlert);
+          }
+        }
+        
+        errorAlert.innerHTML = `
+          <i class="fas fa-exclamation-circle me-2" aria-hidden="true"></i>
+          <span class="sr-only">Error:</span>
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close error message"></button>
+        `;
+      }
+
+      // Enhanced loading state function
+      function addLoadingState(button) {
+        if (button) {
+          button.disabled = true;
+          button.setAttribute('aria-busy', 'true');
+          const originalHTML = button.innerHTML;
+          button.innerHTML = '<i class="fas fa-spinner fa-spin me-2" aria-hidden="true"></i>Signing in...';
+          
+          // Fallback to re-enable button after 30 seconds
+          setTimeout(() => {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+            button.innerHTML = originalHTML;
+          }, 30000);
+        }
+      }
+
+      // Enhanced keyboard navigation
+      document.addEventListener('keydown', function(e) {
+        // ESC key clears form validation
+        if (e.key === 'Escape') {
+          const forms = document.querySelectorAll('form.was-validated');
+          forms.forEach(form => {
+            form.classList.remove('was-validated');
+            form.querySelectorAll('.is-invalid, .is-valid').forEach(input => {
+              input.classList.remove('is-invalid', 'is-valid');
+            });
+            form.querySelectorAll('.invalid-feedback').forEach(feedback => {
+              feedback.remove();
+            });
+          });
+        }
+      });
+
+      // Security: Prevent form resubmission on page refresh
+      if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+      }
+
+      // Rate limiting feedback
+      const loginForm = document.querySelector('form[action*="login"]');
+      if (loginForm) {
+        let attemptCount = parseInt(localStorage.getItem('loginAttempts') || '0');
+        
+        loginForm.addEventListener('submit', function() {
+          attemptCount++;
+          localStorage.setItem('loginAttempts', attemptCount.toString());
+          
+          if (attemptCount >= 3) {
+            localStorage.setItem('lastAttempt', Date.now().toString());
+          }
+        });
+
+        // Check if user should wait due to rate limiting
+        const lastAttempt = parseInt(localStorage.getItem('lastAttempt') || '0');
+        const now = Date.now();
+        const waitTime = 15 * 60 * 1000; // 15 minutes
+
+        if (attemptCount >= 5 && (now - lastAttempt) < waitTime) {
+          const remainingTime = Math.ceil((waitTime - (now - lastAttempt)) / 60000);
+          showError(`Too many failed attempts. Please wait ${remainingTime} minutes before trying again.`);
+          
+          const submitButton = loginForm.querySelector('button[type="submit"]');
+          if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = `Wait ${remainingTime} min`;
+          }
+        }
+      }
+
+      // Clear login attempts on successful login (detected by redirect)
+      if (window.location.search.includes('success')) {
+        localStorage.removeItem('loginAttempts');
+        localStorage.removeItem('lastAttempt');
+      }
+
+    });
+
+    // Global error handler
+    window.addEventListener('error', function(e) {
+      console.error('Authentication page error:', e.error);
+    });
+
+    // Enhanced accessibility: announce important changes
+    window.announceToScreenReader = function(message, priority = 'polite') {
+      const announcement = document.createElement('div');
+      announcement.setAttribute('aria-live', priority);
+      announcement.setAttribute('aria-atomic', 'true');
+      announcement.className = 'sr-only';
+      announcement.textContent = message;
+      document.body.appendChild(announcement);
+      
+      setTimeout(() => {
+        if (document.body.contains(announcement)) {
+          document.body.removeChild(announcement);
+        }
+      }, 3000);
+    };
+  </script>
+</body>
+</html> 
