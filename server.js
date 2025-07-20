@@ -8,7 +8,7 @@ const flash = require('connect-flash');
 const expressLayouts = require('express-ejs-layouts');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
-const csrf = require('csurf');
+const { doubleCsrf } = require('csrf-csrf');
 const { initializeAllFirebaseAccounts } = require('./config/firebase');
 const { initializeDatabase } = require('./config/database');
 const { protect } = require('./middleware/auth');
@@ -54,22 +54,33 @@ app.use(session({
   }
 }));
 
-// CSRF Protection
-const csrfProtection = csrf({ 
-  cookie: true,
-  value: (req) => {
-    // Get the CSRF token from various sources
+// CSRF Protection using csrf-csrf for enhanced security
+const {
+  invalidCsrfTokenError,
+  generateCsrfToken,
+  validateRequest,
+  doubleCsrfProtection,
+} = doubleCsrf({
+  getSecret: () => process.env.CSRF_SECRET || process.env.SESSION_SECRET,
+  getSessionIdentifier: (req) => req.sessionID || req.session?.id || 'anonymous',
+  cookieName: process.env.NODE_ENV === 'production' ? '__Host-csrf-token' : 'csrf-token',
+  cookieOptions: {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+  },
+  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+  getCsrfTokenFromRequest: (req) => {
     return (
       // From request body (form submissions)
       (req.body && req.body._csrf) ||
-      // From query parameter
-      (req.query && req.query._csrf) ||
+      (req.body && req.body.csrf_token) ||
       // From headers (AJAX)
-      (req.headers['csrf-token'] || req.headers['xsrf-token'] || req.headers['x-csrf-token'] || req.headers['x-xsrf-token']) ||
-      // From custom header
+      req.headers['x-csrf-token'] ||
       req.headers['csrf-token']
     );
-  }
+  },
 });
 
 // Flash messages middleware
@@ -86,9 +97,11 @@ app.use((req, res, next) => {
   res.locals.error_msg = Array.isArray(error) && error.length > 0 ? error[0] : '';
   res.locals.info_msg = Array.isArray(info) && info.length > 0 ? info[0] : '';
   
-  // Make CSRF token available to all views if the function exists
-  if (typeof req.csrfToken === 'function') {
-    res.locals.csrfToken = req.csrfToken();
+  // Make CSRF token available to all views
+  try {
+    res.locals.csrfToken = generateCsrfToken(req, res);
+  } catch (err) {
+    res.locals.csrfToken = '';
   }
   
   next();
@@ -107,17 +120,8 @@ const devicesRoutes = require('./routes/devices');
 const accountsRoutes = require('./routes/accounts');
 const authRoutes = require('./routes/auth');
 
-// Auth routes
-app.use('/auth', (req, res, next) => {
-  if (req.method === 'GET' && req.path === '/login') {
-    csrfProtection(req, res, () => {
-      res.locals.csrfToken = req.csrfToken();
-      next();
-    });
-  } else {
-    csrfProtection(req, res, next);
-  }
-}, authRoutes);
+// Auth routes - simplified CSRF handling
+app.use('/auth', doubleCsrfProtection, authRoutes);
 
 // API routes - no CSRF
 app.use('/api/devices', require('./routes/api/devices'));
@@ -125,7 +129,7 @@ app.use('/api/devices', require('./routes/api/devices'));
 // Protected routes middleware
 const protectedRoutes = (req, res, next) => {
   protect(req, res, () => {
-    csrfProtection(req, res, next);
+    doubleCsrfProtection(req, res, next);
   });
 };
 
@@ -152,8 +156,8 @@ app.use((err, req, res, next) => {
 
   // If authenticated, apply CSRF protection
   if (req.cookies.token) {
-    return csrfProtection(req, res, () => {
-      if (err.code === 'EBADCSRFTOKEN') {
+    return doubleCsrfProtection(req, res, () => {
+      if (err.message === 'invalid csrf token' || err.code === 'EBADCSRFTOKEN') {
         // Handle CSRF token errors
         return res.status(403).render('error', {
           layout,
@@ -162,7 +166,7 @@ app.use((err, req, res, next) => {
           error: process.env.NODE_ENV === 'production' ? {} : err,
           activeTab: '',
           user: req.user,
-          csrfToken: req.csrfToken()
+          csrfToken: generateCsrfToken(req, res)
         });
       }
       
@@ -175,13 +179,13 @@ app.use((err, req, res, next) => {
         error: process.env.NODE_ENV === 'production' ? {} : err,
         activeTab: '',
         user: req.user,
-        csrfToken: req.csrfToken()
+        csrfToken: generateCsrfToken(req, res)
       });
     });
   }
 
   // Not authenticated, render without CSRF
-  if (err.code === 'EBADCSRFTOKEN') {
+  if (err.message === 'invalid csrf token' || err.code === 'EBADCSRFTOKEN') {
     return res.status(403).render('error', {
       layout,
       title: 'Forbidden',
@@ -211,7 +215,7 @@ app.use((req, res, next) => {
 
   // If authenticated, apply CSRF protection
   if (req.cookies.token) {
-    return csrfProtection(req, res, () => {
+    return doubleCsrfProtection(req, res, () => {
       res.status(404).render('error', {
         layout,
         title: 'Page Not Found',
@@ -219,7 +223,7 @@ app.use((req, res, next) => {
         error: {},
         activeTab: '',
         user: req.user,
-        csrfToken: req.csrfToken()
+        csrfToken: generateCsrfToken(req, res)
       });
     });
   }

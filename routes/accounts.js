@@ -3,7 +3,12 @@ const router = express.Router();
 const admin = require('firebase-admin');
 const FirebaseAccount = require('../models/FirebaseAccount');
 const { protect, admin: adminMiddleware } = require('../middleware/auth');
-const { validateFirebaseAccount } = require('../middleware/security');
+const { 
+  validateFirebaseAccount, 
+  accountOperationsRateLimiter,
+  expensiveOperationsRateLimiter,
+  sanitizeInput
+} = require('../middleware/security');
 const { 
   initializeFirebaseAccount, 
   removeFirebaseAccount 
@@ -24,7 +29,7 @@ router.get('/', protect, adminMiddleware, async (req, res) => {
       title: 'Firebase Accounts',
       activeTab: 'accounts',
       accounts,
-      csrfToken: req.csrfToken()
+      csrfToken: res.locals.csrfToken || ''
     });
   } catch (err) {
     console.error('List accounts error:', err);
@@ -40,14 +45,14 @@ router.get('/add', protect, adminMiddleware, (req, res) => {
   res.render('accounts/add', {
     title: 'Add Firebase Account',
     activeTab: 'accounts',
-    csrfToken: req.csrfToken()
+    csrfToken: res.locals.csrfToken || ''
   });
 });
 
 // @route   POST /accounts/add
 // @desc    Add a new Firebase account
 // @access  Private/Admin
-router.post('/add', protect, adminMiddleware, validateFirebaseAccount, async (req, res) => {
+router.post('/add', protect, adminMiddleware, sanitizeInput, accountOperationsRateLimiter, expensiveOperationsRateLimiter, validateFirebaseAccount, async (req, res) => {
   const { name, projectId, clientEmail, privateKey, isDefault } = req.body;
 
   try {
@@ -110,7 +115,7 @@ router.get('/edit/:id', protect, adminMiddleware, async (req, res) => {
       title: 'Edit Firebase Account',
       activeTab: 'accounts',
       account,
-      csrfToken: req.csrfToken()
+      csrfToken: res.locals.csrfToken || ''
     });
   } catch (err) {
     console.error('Edit account error:', err);
@@ -122,7 +127,7 @@ router.get('/edit/:id', protect, adminMiddleware, async (req, res) => {
 // @route   POST /accounts/edit/:id
 // @desc    Update a Firebase account
 // @access  Private/Admin
-router.post('/edit/:id', protect, adminMiddleware, async (req, res) => {
+router.post('/edit/:id', protect, adminMiddleware, sanitizeInput, accountOperationsRateLimiter, expensiveOperationsRateLimiter, async (req, res) => {
   const { name, projectId, clientEmail, privateKey, isDefault, isActive } = req.body;
 
   try {
@@ -203,7 +208,7 @@ router.post('/edit/:id', protect, adminMiddleware, async (req, res) => {
 // @route   POST /accounts/delete/:id
 // @desc    Delete a Firebase account
 // @access  Private/Admin
-router.post('/delete/:id', protect, adminMiddleware, async (req, res) => {
+router.post('/delete/:id', protect, adminMiddleware, accountOperationsRateLimiter, async (req, res) => {
   try {
     const account = await FirebaseAccount.findByPk(req.params.id);
 
@@ -230,7 +235,7 @@ router.post('/delete/:id', protect, adminMiddleware, async (req, res) => {
 // @route   POST /accounts/default/:id
 // @desc    Set an account as default
 // @access  Private/Admin
-router.post('/default/:id', protect, adminMiddleware, async (req, res) => {
+router.post('/default/:id', protect, adminMiddleware, accountOperationsRateLimiter, async (req, res) => {
   try {
     const account = await FirebaseAccount.findByPk(req.params.id);
 
@@ -260,7 +265,7 @@ router.post('/default/:id', protect, adminMiddleware, async (req, res) => {
 // @route   POST /accounts/test-credentials
 // @desc    Test Firebase credentials before saving
 // @access  Private/Admin
-router.post('/test-credentials', protect, adminMiddleware, async (req, res) => {
+router.post('/test-credentials', protect, adminMiddleware, expensiveOperationsRateLimiter, async (req, res) => {
   try {
     const { projectId, clientEmail, privateKey } = req.body;
 
@@ -284,9 +289,9 @@ router.post('/test-credentials', protect, adminMiddleware, async (req, res) => {
       const testAppName = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       const testCredentials = {
-        projectId: projectId.trim(),
-        clientEmail: clientEmail.trim(),
-        privateKey: privateKey.replace(/\\n/g, '\n'),
+        projectId: (projectId && typeof projectId === 'string') ? projectId.trim() : '',
+        clientEmail: (clientEmail && typeof clientEmail === 'string') ? clientEmail.trim() : '',
+        privateKey: (privateKey && typeof privateKey === 'string') ? privateKey.replace(/\\n/g, '\n') : '',
       };
 
       // Initialize test Firebase app

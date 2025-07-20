@@ -111,7 +111,7 @@ router.get('/', protect, async (req, res) => {
       platformDistribution,
       recentDevices,
       user: req.user,
-      csrfToken: req.csrfToken()
+      csrfToken: res.locals.csrfToken || ''
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
@@ -122,7 +122,7 @@ router.get('/', protect, async (req, res) => {
       error: process.env.NODE_ENV === 'production' ? {} : error,
       activeTab: '',
       user: req.user,
-      csrfToken: req.csrfToken()
+      csrfToken: res.locals.csrfToken || ''
     });
   }
 });

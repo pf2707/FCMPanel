@@ -4,7 +4,15 @@ const expressLayouts = require('express-ejs-layouts');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
-const { loginRateLimiter, validateLogin, validateRegister, validatePasswordChange, validateRecaptcha } = require('../middleware/security');
+const { 
+  loginRateLimiter, 
+  validateLogin, 
+  validateRegister, 
+  validatePasswordChange, 
+  validateRecaptcha,
+  expensiveOperationsRateLimiter,
+  rateLimiter
+} = require('../middleware/security');
 const { createToken } = require('../middleware/auth');
 const { Op } = require('sequelize');
 
@@ -23,7 +31,7 @@ router.get('/login', (req, res) => {
     layout: 'auth/layout',
     title: 'Login',
     activeTab: 'login',
-    csrfToken: req.csrfToken ? req.csrfToken() : null
+    csrfToken: res.locals.csrfToken || ''
   });
 });
 
@@ -107,7 +115,7 @@ router.get('/profile', protect, (req, res) => {
     title: 'Change Password',
     activeTab: 'profile',
     user: req.user,
-    csrfToken: req.csrfToken(),
+    csrfToken: res.locals.csrfToken || '',
     messages: {
       error: error_msg && error_msg !== '' ? error_msg : null,
       success: success_msg && success_msg !== '' ? success_msg : null
@@ -156,7 +164,7 @@ router.post('/profile', protect, async (req, res) => {
       title: 'Change Password',
       activeTab: 'profile',
       user: req.user,
-      csrfToken: req.csrfToken(),
+      csrfToken: res.locals.csrfToken || '',
       messages: {
         error: error_msg && error_msg !== '' ? error_msg : null,
         success: success_msg && success_msg !== '' ? success_msg : null
@@ -176,14 +184,14 @@ router.get('/change-password', protect, (req, res) => {
   res.render('auth/change-password', {
     title: 'Change Password',
     activeTab: 'profile',
-    csrfToken: req.csrfToken()
+    csrfToken: res.locals.csrfToken || ''
   });
 });
 
 // @route   POST /auth/change-password
 // @desc    Change user password
 // @access  Private
-router.post('/change-password', protect, validatePasswordChange, async (req, res) => {
+router.post('/change-password', protect, rateLimiter, validatePasswordChange, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   try {
@@ -233,7 +241,7 @@ router.get('/users', protect, async (req, res) => {
         error: req.flash('error_msg'),
         success: req.flash('success_msg')
       },
-      csrfToken: req.csrfToken()
+      csrfToken: res.locals.csrfToken || ''
     });
   } catch (err) {
     console.error('List users error:', err);
@@ -317,14 +325,14 @@ router.get('/register', protect, (req, res) => {
   res.render('auth/register', {
     title: 'Register User',
     activeTab: 'admin',
-    csrfToken: req.csrfToken()
+    csrfToken: res.locals.csrfToken || ''
   });
 });
 
 // @route   POST /auth/register
 // @desc    Register a user (admin only)
 // @access  Private/Admin
-router.post('/register', protect, validateRegister, async (req, res) => {
+router.post('/register', protect, expensiveOperationsRateLimiter, validateRegister, async (req, res) => {
   // Check if user is admin
   if (!req.user.isAdmin) {
     req.flash('error_msg', 'Admin access required');
@@ -369,7 +377,7 @@ router.post('/register', protect, validateRegister, async (req, res) => {
 // @route   POST /auth/delete/:id
 // @desc    Delete user (admin only)
 // @access  Private/Admin
-router.post('/delete/:id', protect, async (req, res) => {
+router.post('/delete/:id', protect, rateLimiter, async (req, res) => {
   // Check if user is admin
   if (!req.user.isAdmin) {
     req.flash('error_msg', 'Admin access required');

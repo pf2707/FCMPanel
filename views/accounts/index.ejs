@@ -714,7 +714,7 @@
     messageContainer.innerHTML = '';
 
     // Get CSRF token
-    const csrfToken = document.querySelector('input[name="_csrf"]')?.value || '';
+            const csrfToken = window.getCsrfToken ? window.getCsrfToken() : '';
 
     // Perform the test
     fetch(`/accounts/test/${accountId}`, {
@@ -757,8 +757,8 @@
                 <ul class="list-unstyled mb-0">
                   <li><strong>Email:</strong> ${escapeHtml(data.detail.serviceAccountEmail)}</li>
                   <li><strong>Messaging API:</strong> 
-                    <span class="badge ${data.detail.messagingAvailable ? 'bg-success' : 'bg-warning'}">
-                      ${data.detail.messagingAvailable ? 'Available' : 'Not Available'}
+                    <span class="badge ${escapeHtml(data.detail.messagingAvailable) === 'true' ? 'bg-success' : 'bg-warning'}">
+                      ${escapeHtml(data.detail.messagingAvailable) === 'true' ? 'Available' : 'Not Available'}
                     </span>
                   </li>
                 </ul>
@@ -888,11 +888,7 @@
     }
   });
 
-  // Helper function to get CSRF token
-  window.getCsrfToken = function() {
-    const csrfInput = document.querySelector('input[name="_csrf"]');
-    return csrfInput ? csrfInput.value : '';
-  };
+  // CSRF token function is now defined globally in csrf.ejs partial
 
 })();
 </script>

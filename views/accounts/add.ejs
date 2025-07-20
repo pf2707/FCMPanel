@@ -840,7 +840,7 @@ textarea.is-valid {
     const projectId = document.getElementById('projectId').value.trim();
     const clientEmail = document.getElementById('clientEmail').value.trim();
     const privateKey = document.getElementById('privateKey').value.trim();
-    const csrfToken = document.querySelector('input[name="_csrf"]').value;
+            const csrfToken = window.getCsrfToken ? window.getCsrfToken() : '';
     
     // Make AJAX request to test credentials
     fetch('/accounts/test-credentials', {
@@ -880,8 +880,8 @@ textarea.is-valid {
                      <ul class="list-unstyled mb-0">
                        <li><strong>Service Account:</strong> ${escapeHtml(data.detail.serviceAccountEmail || 'N/A')}</li>
                       <li><strong>Messaging API:</strong> 
-                        <span class="badge ${data.detail.messagingAvailable ? 'bg-success' : 'bg-warning'}">
-                          ${data.detail.messagingAvailable ? 'Available' : 'Not Available'}
+                        <span class="badge ${escapeHtml(data.detail.messagingAvailable) === 'true' ? 'bg-success' : 'bg-warning'}">
+                          ${escapeHtml(data.detail.messagingAvailable) === 'true' ? 'Available' : 'Not Available'}
                         </span>
                       </li>
                     </ul>

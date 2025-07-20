@@ -141,24 +141,7 @@
               <% } %>
             </div>
           </div>
-
-          <!-- Additional Security Notice -->
-          <div class="mt-4 text-center">
-            <small class="text-muted">
-              <i class="fas fa-shield-alt me-1" aria-hidden="true"></i>
-              Your connection is secure and encrypted
-            </small>
-          </div>
         </form>
-
-        <!-- Additional Information -->
-        <div class="mt-4 text-center">
-          <hr class="my-3">
-          <small class="text-muted">
-            <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
-            Need help? Contact your system administrator
-          </small>
-        </div>
       </div>
     </div>
   </div>
@@ -198,10 +181,10 @@
       return;
     }
     
-    // Security: Track login attempts
+    // Security: Track login attempts 
     let attemptCount = 0;
-    const maxAttempts = 5;
-    const lockoutTime = 15 * 60 * 1000; // 15 minutes
+    const maxAttempts = 50; // Match server-side limit
+    const lockoutTime = 1 * 60 * 1000; // 1 minute to match server
     
     // Enhanced input sanitization and validation
     function sanitizeInput(input) {
@@ -390,11 +373,12 @@
       }
       
       if (storedAttempts >= maxAttempts) {
-        const remainingTime = Math.ceil((lockoutTime - (now - lastAttemptTime)) / 60000);
-        showError(`Too many failed attempts. Please wait ${remainingTime} minutes before trying again.`);
+        const remainingTime = Math.ceil((lockoutTime - (now - lastAttemptTime)) / 1000);
+        const timeUnit = remainingTime > 60 ? `${Math.ceil(remainingTime / 60)} minute(s)` : `${remainingTime} second(s)`;
+        showError(`Too many failed attempts. Please wait ${timeUnit} before trying again.`);
         
         submitButton.disabled = true;
-        submitButton.innerHTML = `<i class="fas fa-clock me-2"></i>Wait ${remainingTime} min`;
+        submitButton.innerHTML = `<i class="fas fa-clock me-2"></i>Wait ${timeUnit}`;
         
         return true;
       }
@@ -475,6 +459,18 @@
       subtree: true
     });
     
+    // Clear any stale rate limiting data on page load
+    const storedAttempts = parseInt(localStorage.getItem('loginAttempts') || '0');
+    const lastAttemptTime = parseInt(localStorage.getItem('lastAttemptTime') || '0');
+    const now = Date.now();
+    
+    // Reset if more than lockout time has passed
+    if (storedAttempts > 0 && (now - lastAttemptTime > lockoutTime)) {
+      localStorage.removeItem('loginAttempts');
+      localStorage.removeItem('lastAttemptTime');
+      console.log('🔄 Cleared expired rate limiting data');
+    }
+    
     // Check for rate limiting on page load
     checkRateLimit();
     
@@ -483,6 +479,21 @@
       localStorage.removeItem('loginAttempts');
       localStorage.removeItem('lastAttemptTime');
     }
+    
+    // Add debug function for clearing rate limiting (development only)
+    <% if (process.env.NODE_ENV !== 'production') { %>
+    window.clearLoginRateLimit = function() {
+      localStorage.removeItem('loginAttempts');
+      localStorage.removeItem('lastAttemptTime');
+      submitButton.disabled = false;
+      submitButton.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Sign In';
+      console.log('🔄 Rate limiting cleared manually');
+      return 'Rate limiting cleared!';
+    };
+    console.log('🛠️ Development mode: clearLoginRateLimit() function available');
+    <% } else { %>
+    console.log('🔒 Production mode: Rate limiting clearing disabled');
+    <% } %>
   } catch (error) {
     console.error('Authentication page error:', error);
     // Provide user-friendly error message
@@ -529,64 +540,23 @@
     border-color: var(--fcm-danger-emphasis);
   }
   
-  /* reCAPTCHA container and styling fixes */
+  /* reCAPTCHA styling - simplified and clean */
   .recaptcha-container {
     display: flex;
     justify-content: center;
-    align-items: center;
     margin: 1rem 0;
-    min-height: 78px; /* Standard reCAPTCHA height */
-    position: relative;
-    overflow: visible;
   }
   
   .g-recaptcha {
-    display: block !important;
-    position: relative !important;
-    transform: none !important;
-    transform-origin: center !important;
-    margin: 0 auto !important;
-    max-width: 100% !important;
-    overflow: visible !important;
+    margin: 0 auto;
   }
   
-  /* Fix reCAPTCHA iframe positioning */
-  .g-recaptcha iframe {
-    position: relative !important;
-    display: block !important;
-    margin: 0 auto !important;
-  }
-  
-  /* Responsive scaling for small screens */
-  @media (max-width: 576px) {
-    .recaptcha-container {
-      min-height: 65px; /* Scaled height */
-    }
-    
+  /* Responsive scaling for mobile */
+  @media (max-width: 320px) {
     .g-recaptcha {
-      transform: scale(0.85) !important;
-      transform-origin: center !important;
+      transform: scale(0.88);
+      transform-origin: center;
     }
-  }
-  
-  @media (max-width: 400px) {
-    .recaptcha-container {
-      min-height: 58px; /* Further scaled height */
-    }
-    
-    .g-recaptcha {
-      transform: scale(0.75) !important;
-    }
-  }
-  
-  /* Dark theme iframe styling fixes */
-  .g-recaptcha iframe {
-    border-radius: 8px !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-  }
-  
-  /* Prevent white background bleeding */
-  .g-recaptcha div > div {
-    background: transparent !important;
   }
 </style>
+

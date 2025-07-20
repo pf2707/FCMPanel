@@ -105,7 +105,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const addUserForm = document.getElementById('addUserForm');
-  const csrfToken = document.querySelector('input[name="_csrf"]').value;
+          const csrfToken = window.getCsrfToken ? window.getCsrfToken() : '';
 
   // Handle add user form submission
   addUserForm.addEventListener('submit', async function(e) {

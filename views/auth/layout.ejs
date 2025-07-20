@@ -10,6 +10,7 @@
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta name="referrer" content="strict-origin-when-cross-origin">
+  <% if(typeof csrfToken !== 'undefined' && csrfToken) { %><meta name="csrf-token" content="<%= csrfToken %>"><% } %>
   
   <title>FCM Dashboard | <%= typeof title !== 'undefined' ? title : 'Authentication' %></title>
   

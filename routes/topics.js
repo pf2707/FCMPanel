@@ -6,6 +6,12 @@ const Device = require('../models/Device');
 const TopicSubscription = require('../models/TopicSubscription');
 const NotificationHistory = require('../models/NotificationHistory');
 const FirebaseAccount = require('../models/FirebaseAccount');
+const { 
+  topicOperationsRateLimiter,
+  notificationRateLimiter,
+  expensiveOperationsRateLimiter,
+  sanitizeInput
+} = require('../middleware/security');
 
 // Helper function to initialize default topic
 const initializeDefaultTopic = async () => {
@@ -67,7 +73,7 @@ router.get('/', async (req, res) => {
       topics: topics.map(topic => topic.name),
       topicsData: topics,
       subscriptions: formattedSubscriptions,
-      csrfToken: req.csrfToken()
+      csrfToken: res.locals.csrfToken || ''
     });
   } catch (error) {
     console.error('Error fetching topics data:', error);
@@ -78,13 +84,13 @@ router.get('/', async (req, res) => {
       topics: [],
       topicsData: [],
       subscriptions: [],
-      csrfToken: req.csrfToken()
+      csrfToken: res.locals.csrfToken || ''
     });
   }
 });
 
 // POST: Create a new topic
-router.post('/create', async (req, res) => {
+router.post('/create', sanitizeInput, topicOperationsRateLimiter, async (req, res) => {
   try {
     const { topicName, description } = req.body;
     
@@ -107,7 +113,7 @@ router.post('/create', async (req, res) => {
       isActive: true
     });
     
-    req.flash('success_msg', `Topic "${topicName}" created successfully`);
+    req.flash('success_msg', `Topic "${(topicName && typeof topicName === 'string') ? topicName.replace(/[<>"'&]/g, '') : 'Unknown'}" created successfully`);
     res.redirect('/topics');
   } catch (error) {
     console.error('Error creating topic:', error);
@@ -117,7 +123,7 @@ router.post('/create', async (req, res) => {
 });
 
 // POST: Send notification to a specific topic
-router.post('/send-notification', async (req, res) => {
+router.post('/send-notification', sanitizeInput, notificationRateLimiter, expensiveOperationsRateLimiter, async (req, res) => {
   try {
     const { title, body, topic, imageUrl, accountId } = req.body;
     
@@ -208,7 +214,7 @@ router.post('/send-notification', async (req, res) => {
       }
     }
     
-    req.flash('success_msg', `Notification sent to topic "${topic}" successfully`);
+    req.flash('success_msg', `Notification sent to topic "${(topic && typeof topic === 'string') ? topic.replace(/[<>"'&]/g, '') : 'Unknown'}" successfully`);
     res.redirect('/topics');
   } catch (error) {
     console.error('Error sending topic notification:', error);
@@ -218,7 +224,7 @@ router.post('/send-notification', async (req, res) => {
 });
 
 // POST: Subscribe tokens to a topic
-router.post('/subscribe', async (req, res) => {
+router.post('/subscribe', sanitizeInput, topicOperationsRateLimiter, expensiveOperationsRateLimiter, async (req, res) => {
   try {
     const { tokens, topic } = req.body;
     
@@ -235,7 +241,9 @@ router.post('/subscribe', async (req, res) => {
     }
     
     // Convert tokens string to array
-    const deviceTokens = tokens.split(',').map(token => token.trim()).filter(Boolean);
+    const deviceTokens = (tokens && typeof tokens === 'string') 
+      ? tokens.split(',').map(token => (typeof token === 'string' ? token.trim() : '')).filter(Boolean)
+      : [];
     
     if (deviceTokens.length === 0) {
       req.flash('error_msg', 'No valid device tokens provided');
@@ -286,7 +294,7 @@ router.post('/subscribe', async (req, res) => {
       }
     }
     
-    req.flash('success_msg', `Subscribed ${response.successCount} devices to topic "${topic}" successfully! Failed: ${response.failureCount}`);
+    req.flash('success_msg', `Subscribed ${response.successCount} devices to topic "${(topic && typeof topic === 'string') ? topic.replace(/[<>"'&]/g, '') : 'Unknown'}" successfully! Failed: ${response.failureCount}`);
     res.redirect('/topics');
   } catch (error) {
     console.error('Error subscribing to topic:', error);
@@ -296,7 +304,7 @@ router.post('/subscribe', async (req, res) => {
 });
 
 // POST: Unsubscribe tokens from a topic
-router.post('/unsubscribe', async (req, res) => {
+router.post('/unsubscribe', sanitizeInput, topicOperationsRateLimiter, expensiveOperationsRateLimiter, async (req, res) => {
   try {
     const { tokens, topic } = req.body;
     
@@ -313,7 +321,9 @@ router.post('/unsubscribe', async (req, res) => {
     }
     
     // Convert tokens string to array
-    const deviceTokens = tokens.split(',').map(token => token.trim()).filter(Boolean);
+    const deviceTokens = (tokens && typeof tokens === 'string') 
+      ? tokens.split(',').map(token => (typeof token === 'string' ? token.trim() : '')).filter(Boolean)
+      : [];
     
     if (deviceTokens.length === 0) {
       req.flash('error_msg', 'No valid device tokens provided');
@@ -360,7 +370,7 @@ router.post('/unsubscribe', async (req, res) => {
       }
     }
     
-    req.flash('success_msg', `Unsubscribed ${response.successCount} devices from topic "${topic}" successfully! Failed: ${response.failureCount}`);
+    req.flash('success_msg', `Unsubscribed ${response.successCount} devices from topic "${(topic && typeof topic === 'string') ? topic.replace(/[<>"'&]/g, '') : 'Unknown'}" successfully! Failed: ${response.failureCount}`);
     res.redirect('/topics');
   } catch (error) {
     console.error('Error unsubscribing from topic:', error);

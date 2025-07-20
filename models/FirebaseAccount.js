@@ -4,23 +4,29 @@ const crypto = require('crypto');
 
 // Encryption configuration
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY; // Must be 32 bytes for AES-256
-const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
+const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 
-// Encryption function for sensitive Firebase credentials
+// Encryption function for sensitive Firebase credentials with authenticated encryption
 const encrypt = (text) => {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
   let encrypted = cipher.update(text);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return `${iv.toString('hex')}:${encrypted.toString('hex')}`;
+  const authTag = cipher.getAuthTag();
+  return `${iv.toString('hex')}:${encrypted.toString('hex')}:${authTag.toString('hex')}`;
 };
 
-// Decryption function for sensitive Firebase credentials
+// Decryption function for sensitive Firebase credentials with integrity verification
 const decrypt = (text) => {
   const parts = text.split(':');
+  if (parts.length !== 3) {
+    throw new Error('Invalid encrypted data format');
+  }
   const iv = Buffer.from(parts[0], 'hex');
   const encryptedText = Buffer.from(parts[1], 'hex');
+  const authTag = Buffer.from(parts[2], 'hex');
   const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
+  decipher.setAuthTag(authTag);
   let decrypted = decipher.update(encryptedText);
   decrypted = Buffer.concat([decrypted, decipher.final()]);
   return decrypted.toString();

@@ -2,11 +2,41 @@
 <% if(typeof csrfToken !== 'undefined') { %>
 <form id="csrf-form" method="POST" style="display:none">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
 </form>
+<script>
+    // Make CSRF token available globally
+    window.csrfToken = '<%= csrfToken %>';
+</script>
 <script>
     // Function to help copy CSRF token to dynamically created forms
     window.getCsrfToken = function() {
-        return document.querySelector('#csrf-form input[name="_csrf"]').value;
+        // Try multiple methods to get the CSRF token for compatibility
+        const tokenSources = [
+            '#csrf-form input[name="_csrf"]',
+            '#csrf-form input[name="csrf_token"]', 
+            'input[name="_csrf"]',
+            'input[name="csrf_token"]',
+            'meta[name="csrf-token"]'
+        ];
+        
+        for (const selector of tokenSources) {
+            const element = document.querySelector(selector);
+            if (element && element.value) {
+                return element.value;
+            }
+            if (element && element.content) {
+                return element.content;
+            }
+        }
+        
+        // Fallback: try to get from global variable if set
+        if (window.csrfToken) {
+            return window.csrfToken;
+        }
+        
+        console.warn('CSRF token not found');
+        return '';
     }
     
     // Add CSRF token to all ajax requests
@@ -26,12 +56,12 @@
                     options.headers = {};
                 }
                 
-                // Add CSRF token to header
+                // Add CSRF token to header (using the correct header name for csrf-csrf)
                 if (token) {
                     if (options.headers instanceof Headers) {
-                        options.headers.append('CSRF-Token', token);
+                        options.headers.append('x-csrf-token', token);
                     } else {
-                        options.headers['CSRF-Token'] = token;
+                        options.headers['x-csrf-token'] = token;
                     }
                     
                     // If it's JSON data, add the token to the body
@@ -40,6 +70,7 @@
                         try {
                             const bodyData = JSON.parse(options.body);
                             bodyData._csrf = token;
+                            bodyData.csrf_token = token;
                             options.body = JSON.stringify(bodyData);
                         } catch(e) {
                             console.error('Error adding CSRF token to request body:', e);
@@ -57,7 +88,7 @@
             jQuery.ajaxSetup({
                 beforeSend: function(xhr, settings) {
                     if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
-                        xhr.setRequestHeader('CSRF-Token', window.getCsrfToken());
+                        xhr.setRequestHeader('x-csrf-token', window.getCsrfToken());
                     }
                 }
             });

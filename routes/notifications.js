@@ -4,6 +4,11 @@ const { getFirebaseAdmin } = require('../config/firebase');
 const FirebaseAccount = require('../models/FirebaseAccount');
 const Device = require('../models/Device');
 const { protect } = require('../middleware/auth');
+const { 
+  notificationRateLimiter,
+  expensiveOperationsRateLimiter,
+  sanitizeInput
+} = require('../middleware/security');
 const { Op } = require('sequelize');
 const { body, validationResult } = require('express-validator');
 
@@ -70,7 +75,7 @@ router.get('/', protect, async (req, res) => {
       hasFirebaseAccounts,
       history,
       user: req.user,
-      csrfToken: req.csrfToken()
+      csrfToken: res.locals.csrfToken || ''
     });
   } catch (error) {
     console.error('Error loading notification page:', error);
@@ -80,7 +85,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // POST: Send a notification
-router.post('/', protect, validateNotification, async (req, res) => {
+router.post('/', protect, sanitizeInput, notificationRateLimiter, expensiveOperationsRateLimiter, validateNotification, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     req.flash('error_msg', errors.array().map(e => e.msg).join(', '));
@@ -179,7 +184,7 @@ router.post('/', protect, validateNotification, async (req, res) => {
       // Add the token to the message
       message.token = deviceToken;
       response = await firebaseAdmin.messaging().send(message);
-      targetDescription = `Device: ${deviceToken.substring(0, 12)}...`;
+      targetDescription = `Device: ${(deviceToken && typeof deviceToken === 'string') ? deviceToken.substring(0, 12) : 'Unknown'}...`;
     } else if (targetType === 'topic' && topic) {
       // Add the topic to the message
       message.topic = topic;
@@ -355,7 +360,7 @@ router.post('/send-devices', protect, validateNotification, async (req, res) => 
   try {
     const { title, body, deviceIds, customTokens, imageUrl, accountId } = req.body;
     
-    if ((!deviceIds || deviceIds.length === 0) && (!customTokens || customTokens.trim() === '')) {
+    if ((!deviceIds || deviceIds.length === 0) && (!customTokens || (typeof customTokens === 'string' ? customTokens.trim() : '') === '')) {
       req.flash('error_msg', 'At least one device must be selected or tokens must be provided');
       return res.redirect('/notifications');
     }
@@ -391,7 +396,7 @@ router.post('/send-devices', protect, validateNotification, async (req, res) => 
     }
     
     // Add custom tokens
-    if (customTokens && customTokens.trim() !== '') {
+    if (customTokens && typeof customTokens === 'string' && customTokens.trim() !== '') {
       const customTokenArray = customTokens
         .split(',')
         .map(token => token.trim())

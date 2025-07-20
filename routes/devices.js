@@ -4,6 +4,11 @@ const Device = require('../models/Device');
 const { getFirebaseAdmin } = require('../config/firebase');
 const TopicSubscription = require('../models/TopicSubscription');
 const { sequelize } = require('../config/database');
+const { 
+  deviceOperationsRateLimiter,
+  apiRateLimiter,
+  sanitizeInput
+} = require('../middleware/security');
 
 // Get all devices
 router.get('/', async (req, res) => {
@@ -20,7 +25,7 @@ router.get('/', async (req, res) => {
       activeTab: 'devices',
       devices,
       baseUrl,
-      csrfToken: req.csrfToken()
+      csrfToken: res.locals.csrfToken || ''
     });
   } catch (error) {
     console.error('Error fetching devices:', error);
@@ -30,7 +35,7 @@ router.get('/', async (req, res) => {
 });
 
 // API to register/update a device
-router.post('/register', async (req, res) => {
+router.post('/register', sanitizeInput, apiRateLimiter, deviceOperationsRateLimiter, async (req, res) => {
   try {
     const { id, name, platform, token, metadata } = req.body;
     
@@ -55,7 +60,7 @@ router.post('/register', async (req, res) => {
     } else {
       // Create new device
       const newDevice = await Device.create({
-        id: id || token.substring(0, 16), // Use part of token as ID if not provided
+        id: id || (token && typeof token === 'string' ? token.substring(0, 16) : ''), // Use part of token as ID if not provided
         name,
         platform,
         token,
@@ -73,7 +78,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Mark device as inactive
-router.post('/:id/inactive', async (req, res) => {
+router.post('/:id/inactive', deviceOperationsRateLimiter, async (req, res) => {
   try {
     const device = await Device.findByPk(req.params.id);
     
@@ -94,7 +99,7 @@ router.post('/:id/inactive', async (req, res) => {
 });
 
 // Send test notification to device
-router.post('/:id/test', async (req, res) => {
+router.post('/:id/test', deviceOperationsRateLimiter, async (req, res) => {
   try {
     const device = await Device.findByPk(req.params.id);
     
@@ -176,7 +181,7 @@ router.post('/:id/test', async (req, res) => {
 });
 
 // Delete device
-router.post('/:id/delete', async (req, res) => {
+router.post('/:id/delete', deviceOperationsRateLimiter, async (req, res) => {
   try {
     const deviceId = req.params.id;
     const device = await Device.findByPk(deviceId);
