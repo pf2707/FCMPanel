@@ -33,25 +33,34 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
 
 // Session middleware
+// app.use(session({
+//   store: new SQLiteStore({
+//     db: 'sessions.sqlite',
+//     dir: path.join(__dirname, 'data'),
+//     table: 'sessions'
+//   }),
+//   secret: process.env.SESSION_SECRET,
+//   resave: false,
+//   saveUninitialized: false,
+//   cookie: {
+//     // Secure in production
+//     secure: process.env.NODE_ENV === 'production',
+//     // HttpOnly to mitigate XSS
+//     httpOnly: true,
+//     // SameSite to mitigate CSRF
+//     sameSite: 'strict',
+//     // Set max age to 1 day
+//     maxAge: 24 * 60 * 60 * 1000
+//   }
+// }));
+// Temporary Memory Store:
+const MemoryStore = require('express-session').MemoryStore;
 app.use(session({
-  store: new SQLiteStore({
-    db: 'sessions.sqlite',
-    dir: path.join(__dirname, 'data'),
-    table: 'sessions'
-  }),
+  store: new MemoryStore(),
   secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: false,
-  cookie: {
-    // Secure in production
-    secure: process.env.NODE_ENV === 'production',
-    // HttpOnly to mitigate XSS
-    httpOnly: true,
-    // SameSite to mitigate CSRF
-    sameSite: 'strict',
-    // Set max age to 1 day
-    maxAge: 24 * 60 * 60 * 1000
-  }
+  saveUninitialized: true,
+  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 }
 }));
 
 // CSRF Protection using csrf-csrf for enhanced security
