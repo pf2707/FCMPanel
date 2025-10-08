@@ -22,6 +22,8 @@ initializeDatabase()
   .then(() => console.log('Database initialized'))
   .catch(err => console.error('Database initialization error:', err));
 
+app.set('trust proxy', 1);
+
 // Set EJS as templating engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
