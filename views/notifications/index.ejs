@@ -1064,6 +1064,15 @@
     document.getElementById('preview-silent').classList.toggle('d-none', !silent);
   }
 
+  function isValidUrl(url) {
+    try {
+      new URL(url);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+  
   /**
    * Initialize notifications table with DataTable
    */
