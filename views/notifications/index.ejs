@@ -616,6 +616,8 @@
               <div class="flex-grow-1">
                 <h6 class="mb-1 fw-bold" id="preview-title">Notification Title</h6>
                 <p class="mb-1 text-muted" id="preview-body">Notification message will appear here</p>
+                <!-- Add this for image preview -->
+                <img id="preview-image" src="" alt="Notification Image" style="max-width: 100%; display: none; margin-top: 8px;" />
                 <small class="text-muted">
                   <i class="fas fa-clock me-1" aria-hidden="true"></i>
                   Just now
@@ -1034,6 +1036,15 @@
     // Sanitize and display content
     document.getElementById('preview-title').textContent = title;
     document.getElementById('preview-body').textContent = body;
+    
+    // Show image if URL is present and valid
+    if (imageUrl && isValidUrl(imageUrl)) {
+      previewImage.src = imageUrl;
+      previewImage.style.display = 'block';
+    } else {
+      previewImage.src = '';
+      previewImage.style.display = 'none';
+    }
     
     // Update target info
     let targetText = 'All devices';
