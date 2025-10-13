@@ -124,11 +124,13 @@ router.post('/', protect, sanitizeInput, notificationRateLimiter, expensiveOpera
     const message = {
       notification: {
         title: title,
-        body: body
+        body: body,
+        imageUrl: imageUrl || ""
       },
       data: {
         title: title,
         body: body,
+        imageUrl: imageUrl || "",
         timestamp: Date.now().toString()
       },
       android: {
